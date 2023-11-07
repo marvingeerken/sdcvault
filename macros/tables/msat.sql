@@ -56,7 +56,7 @@ deleted_records as (
 
 records_to_insert as (
     select distinct 
-        {{ automate_dv.alias_all(source_cols, 'stg') }},
+        {{ automate_dv.alias_all(stg, 'stg') }},
         false as is_deleted
     from source_data as stg
     {%- if is_incremental() %}
