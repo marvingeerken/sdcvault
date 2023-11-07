@@ -67,7 +67,7 @@ records_to_insert as (
                 or sat.is_deleted
             )
             and {{ automate_dv.prefix([src_ldts], 'stg') }} > {{ automate_dv.prefix([src_ldts], 'sat') }}
-            or {{ automate_dv.prefix([src_hashdiff], 'sat') }} is null
+            or {{ automate_dv.prefix([hashdiff], 'sat') }} is null
 
     union all
 
