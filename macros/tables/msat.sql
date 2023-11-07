@@ -56,7 +56,7 @@ deleted_records as (
 
 records_to_insert as (
     select distinct 
-        {{ dbtvault.alias_all(source_cols, 'stg') }},
+        {{ automate_dv.alias_all(source_cols, 'stg') }},
         false as is_deleted
     from source_data as stg
     {%- if is_incremental() %}
@@ -67,7 +67,7 @@ records_to_insert as (
                 or sat.is_deleted
             )
             and {{ automate_dv.prefix([src_ldts], 'stg') }} > {{ automate_dv.prefix([src_ldts], 'sat') }}
-            or {{ dbtvault.prefix([src_hashdiff], 'sat') }} is null
+            or {{ automate_dv.prefix([src_hashdiff], 'sat') }} is null
 
     union all
 
