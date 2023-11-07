@@ -27,12 +27,12 @@ blink as (
     {%- for bhub in bhubs %}
 
     {{bhub.bhub}}.{{ bhub.pk }},
+    {% if var('sdcvault.natural_key') -%}
     {{bhub.bhub}}.{{ bhub.pk|lower|replace('hk_','nk_') }},
-    {% set hub = modules.re.sub('^b|_curr$', '', bhub.bhub) -%}
+    {%- endif %}
+    {{ dbt_utils.star(ref(bhub.hub), except=[bhub.pk]+exclude_cols, relation_alias=bhub.bhub) }},
 
-    {{ dbt_utils.star(ref(hub), except=[bhub.pk]+exclude_cols, relation_alias=bhub.bhub) }},
-
-    {%- for i in dbt_utils.get_filtered_columns_in_relation(ref(hub)) -%}
+    {%- for i in dbt_utils.get_filtered_columns_in_relation(ref(bhub.hub)) -%}
         {%- do exclude_cols.append(i) -%}
     {%- endfor -%}
 
