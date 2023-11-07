@@ -9,7 +9,7 @@
     A new metadata field "is_deleted" is introduced.
 
     This macro only works on source data, that has a unique Primary Key.
-    On a source having multiple records per key (e.g. PSA) is will create wrong results.
+    On a source having multiple records per PK (e.g. PSA) it will create wrong results.
 #}
 
 
@@ -25,13 +25,6 @@ with source_data as (
     {{ automate_dv.prefix(all_cols_no_hd, 'stg') }},
     {{ sdcvault.hashdiff(src_payload, alias=hashdiff, is_case_sensitive=hashdiff_is_case_sensitive, exclude=hashdiff_exclude) }}
     from {{ ref(source_model) }} as stg
-
-    {%- if var('sdcvault.high_water_mark') and is_incremental() %}
-    where {{ automate_dv.prefix([src_ldts], 'stg') }} > (
-            select max({{ automate_dv.prefix([src_ldts], 'sat') }})
-            from {{ this }} as sat
-    )
-    {%- endif %}
 ),
 
 {%- if is_incremental() %}
@@ -63,15 +56,18 @@ deleted_records as (
 
 records_to_insert as (
     select distinct 
-        {{ automate_dv.prefix(all_cols, 'stg') }},
+        {{ dbtvault.alias_all(source_cols, 'stg') }},
         false as is_deleted
     from source_data as stg
     {%- if is_incremental() %}
     left join latest_records sat
         on {{ automate_dv.multikey(src_pk, prefix=['sat','stg'], condition='=') }}
-        where ({{ automate_dv.prefix([hashdiff], 'sat') }} != {{ automate_dv.prefix([hashdiff], 'stg') }}
-            and {{ automate_dv.prefix([src_ldts], 'stg') }} > {{ automate_dv.prefix([src_ldts], 'sat') }})
-            or {{ automate_dv.prefix([hashdiff], 'sat') }} is null
+        where (
+                {{ automate_dv.prefix([hashdiff], 'sat') }} != {{ automate_dv.prefix([hashdiff], 'stg') }}
+                or sat.is_deleted
+            )
+            and {{ automate_dv.prefix([src_ldts], 'stg') }} > {{ automate_dv.prefix([src_ldts], 'sat') }}
+            or {{ dbtvault.prefix([src_hashdiff], 'sat') }} is null
 
     union all
 
