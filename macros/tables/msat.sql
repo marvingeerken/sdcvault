@@ -72,7 +72,7 @@ records_to_insert as (
     union all
 
     select
-        {{ automate_dv.prefix(all_cols, 'deleted') }},
+        {{ automate_dv.prefix([all_cols], 'deleted') }},
         true as is_deleted
     from deleted_records as deleted
     {%- endif %}
