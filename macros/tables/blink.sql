@@ -13,7 +13,7 @@ with
 link as (
     select
         link.*,
-        esat.deleted
+        esat.is_deleted
     from {{ ref(link) }} link
     inner join {{ ref(esat) }} esat 
         on link.{{hash_key_link}} = esat.{{hash_key_link}}
@@ -46,7 +46,7 @@ blink as (
     inner join {{ ref(bhub.bhub) }} {{bhub.bhub}}
         on link.{{bhub.pk}} = {{bhub.bhub}}.{{bhub.pk}}
     {%- endfor %}
-    where not deleted
+    where not is_deleted
 )
 
 select * from blink
