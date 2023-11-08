@@ -34,7 +34,6 @@ latest_records as (
         {{ automate_dv.prefix(all_cols, 'sat') }},
         sat.is_deleted
     from {{ this }} as sat
-    where {{ automate_dv.prefix([src_source], 'sat') }} != {{ var('sdcvault.ghost_source') }}
     qualify row_number() over (partition by {{ automate_dv.prefix([src_pk], 'sat') }} order by {{ automate_dv.prefix([src_ldts], 'sat') }} desc) = 1
 ),
 
