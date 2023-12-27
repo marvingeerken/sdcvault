@@ -18,6 +18,9 @@ select
     {% if var('sdcvault.natural_key') -%}
     {{ sdcvault.natural_key(dbt_utils.get_filtered_columns_in_relation(ref(hub), except=[hash_key, 'last_updated', 'dv_source'])) }} as {{hash_key|lower|replace('hk_','nk_')}},
     {%- endif %}
+    {% if var('sdcvault.integer_key') -%}
+    {{ sdcvault.integer_key(dbt_utils.get_filtered_columns_in_relation(ref(hub), except=[hash_key, 'last_updated', 'dv_source'])) }} as {{hash_key|lower|replace('hk_','sk_')}},
+    {%- endif %}
     {{ dbt_utils.star(ref(hub), except=[hash_key] )}}
 from {{ ref( hub ) }}  h
 inner join esat

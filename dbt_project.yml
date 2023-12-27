@@ -18,6 +18,7 @@ clean-targets:
 vars:
   sdcvault.high_water_mark: true
   sdvault.natural_key: false
+  sdvault.integer_key: false
   sdcvault.ghost_hk: "'00000000000000000000000000000000'"
   sdcvault.ghost_ts: "'1900-01-01'"
   sdcvault.ghost_source: "'System'"
