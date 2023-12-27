@@ -27,10 +27,10 @@ blink as (
     {%- for bhub in bhubs %}
 
     {{bhub.bhub}}.{{ bhub.pk }},
-    {% if var('sdcvault.natural_key') -%}
+    {% if var('sdcvault.natural_key', false) -%}
     {{bhub.bhub}}.{{ bhub.pk|lower|replace('hk_','nk_') }},
     {%- endif %}
-    {% if var('sdcvault.integer_key') -%}
+    {% if var('sdcvault.integer_key', false) -%}
     {{bhub.bhub}}.{{ bhub.pk|lower|replace('hk_','sk_') }},
     {%- endif %}
     {{ dbt_utils.star(ref(bhub.hub), except=[bhub.pk]+exclude_cols, relation_alias=bhub.bhub) }},

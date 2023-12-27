@@ -15,10 +15,10 @@ with esat as (
 
 select 
     {{ hash_key }},
-    {% if var('sdcvault.natural_key') -%}
+    {% if var('sdcvault.natural_key', false) -%}
     {{ sdcvault.natural_key(dbt_utils.get_filtered_columns_in_relation(ref(hub), except=[hash_key, 'last_updated', 'dv_source'])) }} as {{hash_key|lower|replace('hk_','nk_')}},
     {%- endif %}
-    {% if var('sdcvault.integer_key') -%}
+    {% if var('sdcvault.integer_key', false) -%}
     {{ sdcvault.integer_key(dbt_utils.get_filtered_columns_in_relation(ref(hub), except=[hash_key, 'last_updated', 'dv_source'])) }} as {{hash_key|lower|replace('hk_','sk_')}},
     {%- endif %}
     {{ dbt_utils.star(ref(hub), except=[hash_key] )}}
