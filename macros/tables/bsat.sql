@@ -17,7 +17,7 @@ sat as (
 
 select 
   bv_parent.*,
-  {{ dbt_utils.star(ref(sat), except=[hash_key,'hd_'~sat,'last_updated','dv_source'], relation_alias='sat')}},
+  {{ dbt_utils.star(ref(sat), except=[hash_key,'hd_'~sat,'last_updated','dv_source','is_deleted'], relation_alias='sat')}},
   sat.last_updated,
   sat.dv_source
 from bv_parent
