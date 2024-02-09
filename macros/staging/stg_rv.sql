@@ -34,10 +34,10 @@
     {%- set all_source_columns = [] -%}
 {%- endif -%}
 
-{%- set derived_column_names = automate_dv.extract_column_names(derived_columns) -%}
-{%- set hashed_column_names = automate_dv.extract_column_names(hashed_columns) -%}
-{%- set exclude_column_names = derived_column_names + hashed_column_names -%}
-{%- set source_and_derived_column_names = (all_source_columns + derived_column_names)| unique | list -%}
+{%- set derived_column_names = automate_dv.extract_column_names(derived_columns) | map('upper') | list -%}
+{%- set hashed_column_names = automate_dv.extract_column_names(hashed_columns) | map('upper') | list -%}
+{%- set exclude_column_names = (derived_column_names + hashed_column_names)  | map('upper') | list -%}
+{%- set source_and_derived_column_names = (all_source_columns + derived_column_names) | map('upper') | unique | list -%}
 
 {%- set source_columns_to_select = automate_dv.process_columns_to_select(all_source_columns, exclude_column_names) -%}
 {%- set derived_columns_to_select = automate_dv.process_columns_to_select(source_and_derived_column_names, hashed_column_names) | unique | list -%}
