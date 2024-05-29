@@ -1,9 +1,3 @@
-{#- 
-    This macro creates Business Links. 
-    A Business Link joins the Effectivity Satellite to remove deleted relationships.
-    It also joins the Business Hub to remove relationships, that hold deleted Business Keys.
--#}
-
 {% macro default__blink_curr(rv_link, rv_esat, bv_curr_hubs, link_hash_key) -%}
 
 {%- set exclude_cols=['last_updated', 'dv_source'] -%}

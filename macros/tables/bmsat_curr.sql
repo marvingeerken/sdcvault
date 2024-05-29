@@ -1,5 +1,3 @@
-{#- This macro creates Business Satellites. -#}
-
 {% macro default__bmsat_curr(bv_curr_parent, rv_satellite, hash_key, ma_hash_key) -%}
 
 with
