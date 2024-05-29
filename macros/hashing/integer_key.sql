@@ -9,7 +9,9 @@
 
 {%- set all_null = [] -%}
 {%- for field in field_list -%}
-    {%- if not loop.last %}{% do all_null.append('-') -%}{%- endif -%}
+    {%- if not loop.last -%}
+        {%- do all_null.append('-') -%}
+    {%- endif -%}
 {%- endfor -%}
 
 {%- set fields = [] -%}
@@ -17,15 +19,18 @@
 {%- for field in field_list -%}
 
     {%- do fields.append(
-        "coalesce(cast(" ~ field ~ " as varchar), '')"
-    ) -%}
-
-    {%- if not loop.last %}
-        {%- do fields.append("'-'") -%}
-    {%- endif -%}
-
-{%- endfor -%}
-
-md5_number_lower64(coalesce(nullif({{ dbt.concat(fields) }}, '{{ all_null | join("") }}'), '00000000000000000000000000000000'))
+        "coalesce(" ~ field ~ "::varchar, '')"
+    ) -%} {%- endfor %}
+        coalesce(
+            md5_number_lower64(
+                nullif(
+                    {% for field in fields -%}
+                    {{ field }} {%- if not loop.last %} || '-' || {%- else -%}, {%- endif %}
+                    {% endfor -%}
+                    '{{ all_null | join("") }}'
+                )
+            ),
+            {{ var('sdcvault.ghost_hk') }}::binary(16)
+        )
 
 {%- endmacro %}
