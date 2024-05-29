@@ -9,8 +9,7 @@
 {%- set multi_batch_bool = datavault4dbt.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
 
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[src_ldts, src_rsrc, src_payload]) -%}
-{%- set source_payload = datavault4dbt.expand_column_list(columns=[src_payload]) -%}
-{%- set unique_hash_key = [parent_hash_key, ma_hash_key] -%}
+{%- set unique_hash_key = datavault4dbt.expand_column_list(columns=[parent_hash_key, ma_hash_key]) -%}
 {%- set source_relation = ref(source_model) -%}
 
 
@@ -19,8 +18,7 @@ with
 {# selecting all source data, that is newer than latest data in msat if incremental #}
 source_data as (
 
-    select
-        {{ datavault4dbt.print_list(unique_hash_key) }},
+    select {{ datavault4dbt.print_list(unique_hash_key) }},
         {# Generate Hash Diff based on payload -#}
         {{ sdcvault.hash_diff(src_payload, alias=hash_diff_alias, is_case_sensitive=hash_diff_case_sensitive_bool, exclude=hash_diff_exclude) }},
         {{ datavault4dbt.print_list(source_cols) }}
@@ -44,25 +42,24 @@ latest_entries_in_msat as (
 
     select *
     from {{ this }}
-    qualify row_number() over(partition by {{ datavault4dbt.print_list(unique_hash_key) }} order by {{ src_ldts }} desc) = 1  
+    qualify row_number() over(partition by {{ parent_hash_key }}, {{ ma_hash_key }} order by {{ src_ldts }} desc) = 1  
 
 ),
 
 
 deleted_records as (
 
-    select
-        {{ datavault4dbt.print_list(unique_hash_key) }},
+    select {{ datavault4dbt.print_list(unique_hash_key) }},
         {{ hash_diff_alias }},
         current_timestamp() as {{ src_ldts }},
         {{ src_rsrc }},
         true as is_deleted,
-        {{ datavault4dbt.print_list(source_payload) }}
+        {{ datavault4dbt.print_list(src_payload) }}
     from latest_entries_in_msat msat 
     where not exists (
         select 1
         from source_data stg
-        where {{ datavault4dbt.multikey(unique_hash_key, prefix=['msat','stg'], condition='=') }}
+        where {{ datavault4dbt.multikey(unique_hash_key, prefix=['msat','stg'], condition='=') | lower }}
     )
         and not coalesce(msat.is_deleted, false)
 
@@ -77,12 +74,11 @@ deleted_records as (
 #}
 deduplicated_source_data as (
 
-    select
-    {{ datavault4dbt.print_list(unique_hash_key) }},
-    {{ hash_diff_alias }},
-    {{ datavault4dbt.print_list(source_cols) }}
+    select {{ datavault4dbt.print_list(unique_hash_key) }},
+        {{ hash_diff_alias }},
+        {{ datavault4dbt.print_list(source_cols) }}
     {%- if is_incremental() %},
-    row_number() over(partition by {{ datavault4dbt.print_list(unique_hash_key) }} order by {{ src_ldts }}) as rn
+        row_number() over(partition by {{ datavault4dbt.print_list(unique_hash_key) }} order by {{ src_ldts }}) as rn
     {%- endif %}
     from source_data
     qualify
@@ -100,13 +96,12 @@ deduplicated_source_data as (
 #}
 records_to_insert as (
 
-    select
-        {{ datavault4dbt.print_list(unique_hash_key) }},
+    select {{ datavault4dbt.print_list(unique_hash_key) }},
         {{ hash_diff_alias }},
         {{ src_ldts }},
         {{ src_rsrc }},
         false as is_deleted,
-        {{ datavault4dbt.print_list(source_payload) }}
+        {{ datavault4dbt.print_list(src_payload) }}
     from {% if multi_batch_bool -%} deduplicated_ {%- endif -%} source_data src
 {%- if is_incremental() %}
     where not exists (
