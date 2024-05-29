@@ -15,7 +15,7 @@
 
 with
 
-{# selecting all source data, that is newer than latest data in msat if incremental #}
+{# Selecting all source data, that is newer than latest data in msat if incremental #}
 source_data as (
 
     select {{ datavault4dbt.print_list(unique_hash_key) }},

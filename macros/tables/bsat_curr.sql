@@ -1,23 +1,23 @@
 {#- This macro creates Business Satellites. -#}
 
-{% macro default__bsat(hash_key, hash_key_ma, bv_parent, sat, ldts) -%}
+{% macro default__bsat_curr(bv_curr_parent, rv_satellite, hash_key) -%}
 
-with 
+with
 
 bv_parent as (
     select * exclude (last_updated, dv_source)
-    from {{ ref(bv_parent) }}
+    from {{ ref(bv_curr_parent) }}
 ),
 
 sat as (
     select *
-    from {{ ref(sat) }}
-    qualify row_number() over (partition by {{ hash_key }}{% if hash_key_ma %}, {{ hash_key_ma}}{% endif %} order by {{ ldts }} desc) = 1
+    from {{ ref(rv_satellite) }}
+    qualify row_number() over (partition by {{ hash_key }} order by {{ ldts }} desc) = 1
 )
 
 select 
   bv_parent.*,
-  {{ dbt_utils.star(ref(sat), except=[hash_key,'hd_'~sat,'last_updated','dv_source','is_deleted'], relation_alias='sat')}},
+  {{ dbt_utils.star(ref(rv_satellite), except=[hash_key,'hd_'~sat,'last_updated','dv_source','is_deleted'], relation_alias='sat')}},
   sat.last_updated,
   sat.dv_source
 from bv_parent

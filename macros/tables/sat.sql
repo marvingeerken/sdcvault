@@ -16,7 +16,7 @@
 with
 
 
-{# selecting all source data, that is newer than latest data in sat if incremental #}
+{# Selecting all source data, that is newer than latest data in sat if incremental #}
 source_data as (
 
     select
