@@ -5,9 +5,7 @@
 {%- endmacro -%}
 
 
-{% macro default__natural_key(field_list) -%}
-
-{%- macro natural_key(field_list, varchar_length=120) -%}
+{%- macro default__natural_key(field_list, varchar_length=120) -%}
 
 {%- set all_null = [] -%}
 {%- for field in field_list -%}
