@@ -36,7 +36,7 @@
 
 with
 
-{%- if is_incremental() -%}
+{% if is_incremental() %}
 {#- Get all target hash keys out of the existing hub for later incremental logic. #}
 distinct_target_hash_keys as (
 
@@ -51,7 +51,7 @@ distinct_target_hash_keys as (
             {%- set source_number = source_model.id | string -%}
             {%- set rsrc_statics = ns.source_models_rsrc_dict[source_number] -%}
 
-            {{ log('rsrc_statics: '~ rsrc_statics, false) }}
+            {{- log('rsrc_statics: '~ rsrc_statics, false) }}
 
             {%- set rsrc_static_query_source -%}
                 select count(*) from (
@@ -65,12 +65,12 @@ distinct_target_hash_keys as (
                     {% endif -%}
                 {%- endfor -%}
                 )
-            {% endset %}
+            {%- endset %}
 
-            {{ log('rsrc static query: '~rsrc_static_query_source, false) }}
+            {{- log('rsrc static query: '~rsrc_static_query_source, false) }}
 
 rsrc_static_{{ source_number }} as (
-            {%- for rsrc_static in rsrc_statics %}
+            {% for rsrc_static in rsrc_statics %}
     select 
         t.*,
         '{{ rsrc_static }}' as rsrc_static
@@ -79,8 +79,8 @@ rsrc_static_{{ source_number }} as (
                 {%- if not loop.last %}
         union all
                 {% endif -%}
-            {%- endfor -%}
-            {%- set ns.last_cte = "rsrc_static_{}".format(source_number) -%}
+            {%- endfor %}
+            {% set ns.last_cte = "rsrc_static_{}".format(source_number) %}
 ),
             
             {%- set source_in_target = true -%}
@@ -97,27 +97,24 @@ rsrc_static_{{ source_number }} as (
             {%- endif -%}
 
             {%- do ns.source_included_before.update({source_model.id: source_in_target}) -%}
-
-        {% endfor -%}
+        {% endfor %}
 
         {%- if source_models | length > 1 %}
 
 rsrc_static_union as (
-            {# Create one unionized table over all sources. It will be the same as the already existing
+            {#- Create one unionized table over all sources. It will be the same as the already existing
                hub, but extended by the rsrc_static column. #}
-            {% for source_model in source_models %}
-                {%- set source_number = source_model.id | string -%}
+            {%- for source_model in source_models %}
+                {%- set source_number = source_model.id | string %}
 
     select rsrc_static_{{ source_number }}.* from rsrc_static_{{ source_number }}
-
-                {%- if not loop.last %}
+                {% if not loop.last %}
     union all
-                {% endif -%}
+                {%- endif %}
             {%- endfor %}
-            {%- set ns.last_cte = "rsrc_static_union" -%}
-        ),
-
-        {%- endif %}
+            {%- set ns.last_cte = "rsrc_static_union" %}
+),
+        {% endif %}
 
 max_ldts_per_rsrc_static_in_target as (
         {# Use the previously created CTE to calculate the max load date timestamp per rsrc_static. #}
@@ -149,10 +146,9 @@ src_new_{{ source_number }} as (
 
     select
         {{ hk_column }} as {{ hash_key }},
-            {% for bk in source_model['bk_columns'] -%}
+        {%- for bk in source_model['bk_columns'] %}
         {{ bk }},
-            {% endfor -%}
-
+        {%- endfor %}
         {{ src_ldts }},
         {{ src_rsrc }}
     from {{ ref(source_model.name) }} src
@@ -160,7 +156,7 @@ src_new_{{ source_number }} as (
 
     {%- if table_sample_prob != -1 %}
     tablesample ({{ table_sample_prob }})
-    {% endif -%}
+    {%- endif %}
 
     {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number|int] and high_water_mark_bool %}
     inner join max_ldts_per_rsrc_static_in_target maxl
@@ -176,43 +172,38 @@ src_new_{{ source_number }} as (
         select max({{ src_ldts }})
         from {{ this }}
     )
-    {%- endif %}
+    {%- endif -%}
 
     {%- set ns.last_cte = "src_new_{}".format(source_number) %}
 
 ),
-{%- endfor -%}
+{%- endfor %}
 
-{%- if source_models | length > 1 %}
-
+{% if source_models | length > 1 %}
 source_new_union as (
 
     {%- for source_model in source_models -%}
 
-        {%- set source_number = source_model.id | string -%}
+        {% set source_number = source_model.id | string %}
 
     select
         {{ hash_key }},
 
-        {% for bk in source_model['bk_columns'] -%}
+        {%- for bk in source_model['bk_columns'] %}
         {{ bk }} as {{ business_key[loop.index - 1] }},
-        {% endfor -%}
-
+        {%- endfor %}
         {{ src_ldts }},
         {{ src_rsrc }}
     from src_new_{{ source_number }}
-
-        {%- if not loop.last %}
+        {% if not loop.last %}
     union all
-        {% endif -%}
+        {%- endif -%}
 
-    {%- endfor -%}
+    {%- endfor %}
 
-    {%- set ns.last_cte = 'source_new_union' -%}
-
+    {%- set ns.last_cte = 'source_new_union' %}
 ),
-
-{%- endif %}
+{% endif %}
 
 earliest_hk_over_all_sources as (
 
@@ -222,22 +213,22 @@ earliest_hk_over_all_sources as (
     from {{ ns.last_cte }} as lcte
     qualify row_number() over (partition by {{ hash_key }} order by {{ src_ldts }}) = 1
 
-{%- set ns.last_cte = 'earliest_hk_over_all_sources' -%}
+{%- set ns.last_cte = 'earliest_hk_over_all_sources' %}
 
 ),
 
+
 records_to_insert as (
     {# select everything from the previous CTE, if incremental filter for hash keys that are not already in the hub. #}
-    select
-        {{ datavault4dbt.print_list(final_columns_to_select) }}
+    select {{ datavault4dbt.print_list(final_columns_to_select) }}
     from {{ ns.last_cte }}
 
 {%- if is_incremental() %}
-    where {{ hash_key }} not in (select * from distinct_target_hash_keys)
+    where {{ hash_key }} not in (
+        select * from distinct_target_hash_keys
+    )
 {% endif %}
-
 )
 
 select * from records_to_insert
-
 {%- endmacro %}
