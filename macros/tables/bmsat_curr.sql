@@ -1,4 +1,4 @@
-{% macro default__bmsat_curr(bv_curr_parent, rv_satellite, hash_key, ma_hash_key) -%}
+{% macro default__bmsat_curr(bv_curr_parent, rv_ma_satellite, hash_key, ma_hash_key) -%}
 
 with
 
@@ -9,13 +9,13 @@ bv_parent as (
 
 sat as (
     select *
-    from {{ ref(rv_satellite) }}
+    from {{ ref(rv_ma_satellite) }}
     qualify row_number() over (partition by {{ hash_key }}, {{ ma_hash_key}} order by {{ ldts }} desc) = 1
 )
 
 select 
   bv_parent.*,
-  {{ dbt_utils.star(ref(rv_satellite), except=[hash_key,'hd_'~sat,'last_updated','dv_source','is_deleted'], relation_alias='sat')}},
+  {{ dbt_utils.star(ref(rv_ma_satellite), except=[hash_key,'hd_'~sat,'last_updated','dv_source','is_deleted'], relation_alias='sat')}},
   sat.last_updated,
   sat.dv_source
 from bv_parent
