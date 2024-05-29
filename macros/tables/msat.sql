@@ -48,7 +48,9 @@ latest_entries_in_msat as (
 
 ),
 
+
 deleted_records as (
+
     select
         {{ datavault4dbt.print_list(unique_hash_key) }},
         {{ hash_diff_alias }},
@@ -63,6 +65,7 @@ deleted_records as (
         where {{ datavault4dbt.multikey(unique_hash_key, prefix=['msat','stg'], condition='=') }}
     )
         and not coalesce(msat.is_deleted, false)
+
 ),
 
 {%- endif %}
@@ -133,5 +136,4 @@ records_to_insert as (
 )
 
 select * from records_to_insert
-
-{%- endmacro -%}
+{%- endmacro %}

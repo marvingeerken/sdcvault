@@ -2,17 +2,18 @@
                        src_ldts, src_rsrc, high_water_mark_bool, table_sample_prob, multi_batch_bool,
                        hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
 
-{%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
-{%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set high_water_mark_bool = datavault4dbt.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%}
-{%- set table_sample_prob = datavault4dbt.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
-{%- set multi_batch_bool = datavault4dbt.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
+{%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
+{%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
+{%- set high_water_mark_bool = sdcvault.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%}
+{%- set table_sample_prob = sdcvault.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
+{%- set multi_batch_bool = sdcvault.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
 
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[src_ldts, src_rsrc, src_payload]) -%}
 {%- set source_relation = ref(source_model) -%}
 
 
 with
+
 
 {# selecting all source data, that is newer than latest data in sat if incremental #}
 source_data as (
@@ -44,8 +45,7 @@ latest_entries_in_sat as (
         {{ parent_hash_key }},
         {{ hash_diff_alias }},
         {{ src_ldts }}
-    from 
-    {{ this }}
+    from {{ this }}
     qualify row_number() over(partition by {{ parent_hash_key }} order by {{ src_ldts }} desc) = 1  
 
 ),
@@ -99,12 +99,10 @@ records_to_insert as (
     {%- if multi_batch_bool -%}
             and src.rn = 1
     {%- endif %}
-
     )
 {%- endif %}
 
 )
 
 select * from records_to_insert
-
-{%- endmacro -%}
+{%- endmacro %}
