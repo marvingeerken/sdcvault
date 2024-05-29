@@ -1,28 +1,40 @@
 {% macro default__bmsat_curr(bv_curr_parent, rv_ma_satellite, hash_key, ma_hash_key) -%}
 
+{%- set ldts = var('sdcvault.ldts_alias', 'last_updated') -%}
+{%- set rsrc = var('sdcvault.rsrc_alias', 'dv_source') -%}
+{%- set exclude_columns = [hash_key, ldts, rsrc, 'is_deleted', 'hd_' ~ rv_ma_satellite]  -%}
+
 with
 
 bv_parent as (
-    select * exclude (last_updated, dv_source)
+
+    select * exclude ({{ ldts }}, {{ rsrc }})
     from {{ ref(bv_curr_parent) }}
+
 ),
 
-sat as (
+msat as (
+
     select *
     from {{ ref(rv_ma_satellite) }}
-    qualify row_number() over (partition by {{ hash_key }}, {{ ma_hash_key}} order by {{ ldts }} desc) = 1
+    where {{ hash_key }} != {{ var('sdcvault.ghost_hk') }}::binary(16)
+    qualify row_number() over (partition by {{ hash_key }}, {{ ma_hash_key }} order by {{ ldts }} desc) = 1
+
+),
+
+final as (
+
+    select 
+        bv_parent.*,
+        {{ dbt_utils.star(ref(rv_ma_satellite), except=exclude_columns, relation_alias='msat', quote_identifiers=false) | lower | indent(6) }},
+        msat.last_updated,
+        msat.dv_source
+    from bv_parent
+    inner join msat
+        on bv_parent.{{ hash_key }} = msat.{{ hash_key }}
+    where not msat.is_deleted
+
 )
 
-select 
-  bv_parent.*,
-  {{ dbt_utils.star(ref(rv_ma_satellite), except=[hash_key,'hd_'~sat,'last_updated','dv_source','is_deleted'], relation_alias='sat')}},
-  sat.last_updated,
-  sat.dv_source
-from bv_parent
-inner join sat
-    on bv_parent.{{ hash_key }} = sat.{{ hash_key }}
-where sat.{{ hash_key }} != {{var('sdcvault.ghost_hk')}}::binary(16)
-{% if hash_key_ma %} and not sat.is_deleted {% endif %}
-
-
+select * from final
 {%- endmacro %}
