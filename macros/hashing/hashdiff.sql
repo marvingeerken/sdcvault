@@ -24,12 +24,9 @@
 {#- if single column to hash -#}
 {%- if columns is string -%}
     {%- set column_str = automate_dv.as_constant(columns) -%}
-    {%- if automate_dv.is_expression(column_str) -%}
-        {%- set escaped_column_str = column_str -%}
-    {%- else -%}
-        {%- set escaped_column_str = automate_dv.escape_column_names(column_str) -%}
-    {%- endif -%}
-    {{- "cast(({}({})) as binary({})) as {}".format(hash_alg, standardise | replace('[expression]', escaped_column_str), hash_size, automate_dv.escape_column_names(alias)) | indent(4) -}}
+    {%- set escaped_column_str = column_str -%}
+
+    {{- "cast(({}({})) as binary({})) as {}".format(hash_alg, standardise | replace('[expression]', escaped_column_str), hash_size, alias) | indent(4) -}}
 
 {#- else a list of columns to hash -#}
 {%- else -%}
@@ -44,17 +41,14 @@
         {%- do all_null.append(null_placeholder_string) -%}
 
         {%- set column_str = automate_dv.as_constant(column) -%}
-        {%- if automate_dv.is_expression(column_str) -%}
-            {%- set escaped_column_str = column_str -%}
-        {%- else -%}
-            {%- set escaped_column_str = automate_dv.escape_column_names(column_str) -%}
-        {%- endif -%}
+        {%- set escaped_column_str = column_str -%}
+
         {{- "\nifnull({}, '{}')".format(standardise | replace('[expression]', escaped_column_str), null_placeholder_string) | indent(4) -}}
         {{- "," if not loop.last -}}
 
         {%- if loop.last -%}
 
-            {{- "\n)) as binary({})) as {}".format(hash_size, automate_dv.escape_column_names(alias)) -}}
+            {{- "\n)) as binary({})) as {}".format(hash_size, alias) -}}
 
         {%- else -%}
 

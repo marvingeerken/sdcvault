@@ -19,8 +19,8 @@ with
 source_data as (
 
     select {{ datavault4dbt.print_list(unique_hash_key) }},
-        {# Generate Hash Diff based on payload -#}
-        {{ sdcvault.hash_diff(src_payload, alias=hash_diff_alias, is_case_sensitive=hash_diff_case_sensitive_bool, exclude=hash_diff_exclude) }},
+        {# Generate Hash Diff based on payload #}
+        {{ sdcvault.hash_diff(src_payload, alias=hash_diff_alias, is_case_sensitive=hash_diff_case_sensitive_bool, exclude=hash_diff_exclude) | indent(8) }},
         {{ datavault4dbt.print_list(source_cols) }}
     from {{ source_relation }}
 
