@@ -30,7 +30,8 @@
 {%- set source_models = source_model_values['source_model_list'] -%}
 {%- set ns.has_rsrc_static_defined = source_model_values['has_rsrc_static_defined'] -%}
 {%- set ns.source_models_rsrc_dict = source_model_values['source_models_rsrc_dict'] -%}
-{{- log('source_models: '~source_models, false) -}}
+
+{{- log('source_models: '~  source_models, false) -}}
 
 {%- set final_columns_to_select = [link_hash_key] + foreign_hash_keys + [src_ldts] + [src_rsrc] -%}
 
@@ -41,8 +42,7 @@ with
 {#- Get all link hash keys out of the existing link for later incremental logic. #}
 distinct_target_hash_keys as (
         
-    select
-        {{ link_hash_key }}
+    select {{ link_hash_key }}
     from {{ this }}
 
 ),
@@ -57,9 +57,9 @@ distinct_target_hash_keys as (
             {%- set rsrc_static_query_source -%}
                 select count(*) from (
                 {%- for rsrc_static in rsrc_statics %}
-                    select t.{{ src_rsrc }},
+                    select {{ src_rsrc }},
                     '{{ rsrc_static }}' as rsrc_static
-                    from {{ this }} t
+                    from {{ this }}
                     where {{ src_rsrc }} like '{{ rsrc_static }}'
                     {%- if not loop.last %}
                         union all
@@ -71,9 +71,9 @@ distinct_target_hash_keys as (
 rsrc_static_{{ source_number }} as (
             {% for rsrc_static in rsrc_statics %}
     select 
-        t.*,
+        *,
         '{{ rsrc_static }}' as rsrc_static
-    from {{ this }} t
+    from {{ this }}
     where {{ src_rsrc }} like '{{ rsrc_static }}'
                 {%- if not loop.last %}
     union all
@@ -105,7 +105,7 @@ rsrc_static_union as (
             {%- for source_model in source_models %}
                 {%- set source_number = source_model.id | string %}
 
-    select rsrc_static_{{ source_number }}.* from rsrc_static_{{ source_number }}
+    select * from rsrc_static_{{ source_number }}
                 {% if not loop.last %}
     union all
                 {%- endif %}
@@ -209,9 +209,8 @@ source_new_union as (
 earliest_hk_over_all_sources as (
 
     {# Deduplicate the unionized records again to only insert the earliest one. -#}
-    select
-        lcte.*
-    from {{ ns.last_cte }} as lcte
+    select *
+    from {{ ns.last_cte }}
     qualify row_number() over (partition by {{ link_hash_key }} order by {{ src_ldts }}) = 1
 
 {%- set ns.last_cte = 'earliest_hk_over_all_sources' %}
