@@ -29,7 +29,7 @@
 {%- set source_models = source_model_values['source_model_list'] -%}
 {%- set ns.has_rsrc_static_defined = source_model_values['has_rsrc_static_defined'] -%}
 {%- set ns.source_models_rsrc_dict = source_model_values['source_models_rsrc_dict'] -%}
-{{- log('source_models: '~source_models, false) -}}
+{{- log('source_models: ' ~ source_models, false) -}}
 
 {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [src_rsrc] -%}
 
@@ -40,8 +40,7 @@ with
 {#- Get all target hash keys out of the existing hub for later incremental logic. #}
 distinct_target_hash_keys as (
 
-    select
-        {{ hash_key }}
+    select {{ hash_key }}
     from {{ this }}
 
 ),
@@ -56,9 +55,9 @@ distinct_target_hash_keys as (
             {%- set rsrc_static_query_source -%}
                 select count(*) from (
                 {%- for rsrc_static in rsrc_statics -%}
-                    select t.{{ src_rsrc }},
+                    select {{ src_rsrc }},
                     '{{ rsrc_static }}' as rsrc_static
-                    from {{ this }} t
+                    from {{ this }}
                     where {{ src_rsrc }} like '{{ rsrc_static }}'
                     {%- if not loop.last %}
                         union all
@@ -67,15 +66,15 @@ distinct_target_hash_keys as (
                 )
             {%- endset %}
 
-            {{- log('rsrc static query: '~rsrc_static_query_source, false) }}
+            {{- log('rsrc static query: ' ~ rsrc_static_query_source, false) }}
 
 rsrc_static_{{ source_number }} as (
             {% for rsrc_static in rsrc_statics %}
     select 
-        t.*,
+        *,
         '{{ rsrc_static }}' as rsrc_static
-        from {{ this }} t
-        where {{ src_rsrc }} like '{{ rsrc_static }}'
+    from {{ this }}
+    where {{ src_rsrc }} like '{{ rsrc_static }}'
                 {%- if not loop.last %}
         union all
                 {% endif -%}
@@ -103,11 +102,11 @@ rsrc_static_{{ source_number }} as (
 
 rsrc_static_union as (
             {#- Create one unionized table over all sources. It will be the same as the already existing
-               hub, but extended by the rsrc_static column. #}
+                hub, but extended by the rsrc_static column. #}
             {%- for source_model in source_models %}
                 {%- set source_number = source_model.id | string %}
 
-    select rsrc_static_{{ source_number }}.* from rsrc_static_{{ source_number }}
+    select * from rsrc_static_{{ source_number }}
                 {% if not loop.last %}
     union all
                 {%- endif %}
@@ -117,7 +116,7 @@ rsrc_static_union as (
         {% endif %}
 
 max_ldts_per_rsrc_static_in_target as (
-        {# Use the previously created CTE to calculate the max load date timestamp per rsrc_static. #}
+    {# Use the previously created CTE to calculate the max load date timestamp per rsrc_static. #}
     select
         rsrc_static,
         max({{ src_ldts }}) as max_ldts
@@ -145,20 +144,20 @@ max_ldts_per_rsrc_static_in_target as (
 src_new_{{ source_number }} as (
 
     select
-        {{ hk_column }} as {{ hash_key }},
+        src.{{ hk_column }} as {{ hash_key }},
         {%- for bk in source_model['bk_columns'] %}
-        {{ bk }},
+        src.{{ bk }},
         {%- endfor %}
-        {{ src_ldts }},
-        {{ src_rsrc }}
+        src.{{ src_ldts }},
+        src.{{ src_rsrc }}
     from {{ ref(source_model.name) }} src
-    {{- log('rsrc_statics defined?: ' ~ ns.source_models_rsrc_dict[source_number|string], false) -}}
+    {{- log('rsrc_statics defined?: ' ~ ns.source_models_rsrc_dict[source_number | string], false) -}}
 
     {%- if table_sample_prob != -1 %}
     tablesample ({{ table_sample_prob }})
     {%- endif %}
 
-    {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number|int] and high_water_mark_bool %}
+    {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number | int] and high_water_mark_bool %}
     inner join max_ldts_per_rsrc_static_in_target maxl
         on
         {%- for rsrc_static in rsrc_statics %}
@@ -208,9 +207,8 @@ source_new_union as (
 earliest_hk_over_all_sources as (
 
     {# Deduplicate the unionized records again to only insert the earliest one. -#}
-    select
-        lcte.*
-    from {{ ns.last_cte }} as lcte
+    select *
+    from {{ ns.last_cte }}
     qualify row_number() over (partition by {{ hash_key }} order by {{ src_ldts }}) = 1
 
 {%- set ns.last_cte = 'earliest_hk_over_all_sources' %}
