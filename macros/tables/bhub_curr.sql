@@ -1,8 +1,8 @@
 {%- macro default__bhub_curr(rv_hub, rv_esat, hash_key) %}
 
-{%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
-{%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set exclude_columns = [hash_key, src_ldts, src_rsrc] -%}
+{%- set ldts = var('sdcvault.ldts_alias', 'last_updated') -%}
+{%- set rsrc = var('sdcvault.rsrc_alias', 'dv_source') -%}
+{%- set exclude_columns = [hash_key, ldts, rsrc]  -%}
 
 with 
 
@@ -12,7 +12,7 @@ esat as (
         {{ hash_key }},
         is_deleted
     from {{ ref( rv_esat ) }}
-    qualify row_number() over (partition by {{ hash_key }} order by {{ src_ldts }} desc) = 1
+    qualify row_number() over (partition by {{ hash_key }} order by {{ ldts }} desc) = 1
 
 ),
 
