@@ -1,11 +1,11 @@
-{%- macro hashdiff(columns=none, alias=none, is_case_sensitive=false, exclude=[]) -%}
+{%- macro hash_diff(columns=none, alias=none, is_case_sensitive=false, exclude=[]) -%}
 
-    {{ adapter.dispatch('hashdiff', 'sdcvault')(columns=columns, alias=alias, is_case_sensitive=is_case_sensitive, exclude=exclude) -}}
+    {{ adapter.dispatch('hash_diff', 'sdcvault')(columns=columns, alias=alias, is_case_sensitive=is_case_sensitive, exclude=exclude) -}}
 
 {%- endmacro -%}
 
 
-{%- macro default__hashdiff(columns, alias, is_case_sensitive, exclude) -%}
+{%- macro default__hash_diff(columns, alias, is_case_sensitive, exclude) -%}
 
 {%- set hash_alg = 'md5_binary' -%}
 {%- set hash_size = 16 -%}

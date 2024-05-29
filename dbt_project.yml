@@ -1,5 +1,5 @@
 name: sdcvault
-version: 0.0.1
+version: 0.1.0
 require-dbt-version: [">=1.0.0", "<2.0.0"]
 config-version: 2
 
@@ -17,8 +17,13 @@ clean-targets:
 
 vars:
   sdcvault.high_water_mark: true
+  sdcvault.limit_sources_num: -1
+  sdcvault.table_sample_prob: -1
   sdvault.natural_key: false
   sdvault.integer_key: false
+  sdcvault.ldts_alias: "'last_updated'"
+  sdcvault.rsrc_alias: "'dv_source'"
   sdcvault.ghost_hk: "'00000000000000000000000000000000'"
   sdcvault.ghost_ts: "'1900-01-01'"
   sdcvault.ghost_source: "'System'"
+  sdcvault.end_of_time: "'9999-12-31'"
