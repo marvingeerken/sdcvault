@@ -117,6 +117,3 @@ select * from columns_to_select
 union all 
 select * from default_values
 {%- endmacro -%}
-
-select * from columns_to_select
-{%- endmacro -%}
