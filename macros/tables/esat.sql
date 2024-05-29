@@ -11,7 +11,7 @@
     {%- set source_models = source_models[:limit_sources_num] -%}
 {%- endif -%}
 
-{{- log('source_models'~source_models, false) -}}
+{{- log('source_models' ~ source_models, false) -}}
 
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[parent_hash_key, src_ldts, src_rsrc]) -%}
 
@@ -25,7 +25,7 @@ with
 
 {#- Get available HKs from stage -#}
 src_union as (
-    {% for source_model in source_models %}
+{% for source_model in source_models %}
     select {{ datavault4dbt.print_list(source_cols) }}
     from {{ ref(source_model) }}
 
@@ -35,7 +35,7 @@ src_union as (
     {% if not loop.last %}
     union all
     {%- endif %}
-    {% endfor %}
+{% endfor %}
 ),
 
 
@@ -67,7 +67,7 @@ insert_rows as (
     {# Insert records from hub with is_deleted=false, if its not yet available -#}
     select {{ datavault4dbt.print_list(source_cols) }},
         {{ src_ldts }} as start_date,
-        to_timestamp({{ end_of_time }}) AS end_date,    
+        to_timestamp({{ end_of_time }}) as end_date,    
         false as is_deleted 
     from src_union_first
 
@@ -101,14 +101,14 @@ insert_rows as (
     select
         stg.{{ parent_hash_key }},
 
-        {# Use current_timestamp() as ldts for recurring keys with old ldts. Otherwise we would get Unique PK violation. -#}
+        {#- Use current_timestamp() as ldts for recurring keys with old ldts. Otherwise we would get Unique PK violation. #}
         case
             when stg.{{ src_ldts }} > esat.{{ src_ldts }} 
                 then stg.{{ src_ldts }},
             else current_timestamp()
         end as {{ src_ldts }},
 
-        {{ src_rsrc }},
+        stg.{{ src_rsrc }},
         stg.{{ src_ldts }} as start_date,
         to_timestamp({{ end_of_time }}) as end_date,
         false as is_deleted
