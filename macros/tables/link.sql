@@ -1,5 +1,5 @@
-{%- macro default__link(source_models, link_hash_key, foreign_hash_keys, src_ldts=none, src_rsrc=none,
-                        high_water_mark_bool=none, limit_sources_num=none, table_sample_prob=none) -%}
+{%- macro default__link(source_models, link_hash_key, foreign_hash_keys, src_ldts, src_rsrc,
+                        high_water_mark_bool, limit_sources_num, table_sample_prob) -%}
 
 {%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
