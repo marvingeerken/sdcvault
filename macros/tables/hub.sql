@@ -1,10 +1,10 @@
 {%- macro default__hub(source_models, hash_key, business_key, src_ldts, src_rsrc, high_water_mark_bool, limit_sources_num, table_sample_prob) -%}
 
-{%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
-{%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set high_water_mark_bool = datavault4dbt.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%}
-{%- set limit_sources_num = datavault4dbt.replace_standard(limit_sources_num, 'sdcvault.limit_sources_num', -1) -%}
-{%- set table_sample_prob = datavault4dbt.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
+{%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
+{%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
+{%- set high_water_mark_bool = sdcvault.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%}
+{%- set limit_sources_num = sdcvault.replace_standard(limit_sources_num, 'sdcvault.limit_sources_num', -1) -%}
+{%- set table_sample_prob = sdcvault.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
 
 {%- if datavault4dbt.is_list(source_models) and limit_sources_num != -1 -%}
     {%- set source_models = source_models[:limit_sources_num] -%}
@@ -161,7 +161,7 @@ src_new_{{ source_number }} as (
     {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number|int] and high_water_mark_bool %}
     inner join max_ldts_per_rsrc_static_in_target maxl
         on
-        {%- for rsrc_static in rsrc_statics -%}
+        {%- for rsrc_static in rsrc_statics %}
             maxl.rsrc_static = '{{ rsrc_static }}'
             {%- if not loop.last -%} or
             {% endif -%}
