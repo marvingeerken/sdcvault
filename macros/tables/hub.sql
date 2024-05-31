@@ -55,8 +55,7 @@ distinct_target_hash_keys as (
             {%- set rsrc_static_query_source -%}
                 select count(*) from (
                 {%- for rsrc_static in rsrc_statics -%}
-                    select {{ src_rsrc }},
-                    '{{ rsrc_static }}' as rsrc_static
+                    select {{ src_rsrc }}
                     from {{ this }}
                     where {{ src_rsrc }} like '{{ rsrc_static }}'
                     {%- if not loop.last %}
