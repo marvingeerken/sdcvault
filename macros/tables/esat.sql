@@ -52,7 +52,7 @@ distinct_target_records as (
                 {%- for rsrc_static in rsrc_statics -%}
                     select {{ src_rsrc }}
                     from {{ this }}
-                    where {{ src_rsrc }} like '{{ rsrc_static }}'
+                    where {{ src_rsrc }} ilike '{{ rsrc_static }}'
                     {%- if not loop.last %}
                         union all
                     {% endif -%}
