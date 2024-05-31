@@ -166,7 +166,7 @@ src_new_{{ source_number }} as (
             {% endif -%}
         {%- endfor %}
     where src.{{ src_ldts }} > maxl.max_ldts
-    {%- elif is_incremental() and source_models | length == 1 and not ns.has_rsrc_static_defined and not high_water_mark_bool %}
+    {%- elif is_incremental() and source_models | length == 1 and not ns.has_rsrc_static_defined and high_water_mark_bool %}
     where src.{{ src_ldts }} > (
         select max({{ src_ldts }})
         from {{ this }}
