@@ -39,7 +39,7 @@
 with
 
 {% if is_incremental() %}
-{#- Get all link hash keys out of the existing link for later incremental logic. #}
+{#- Get all link hash keys out of the existing link for incremental logic. #}
 distinct_target_hash_keys as (
         
     select {{ link_hash_key }}

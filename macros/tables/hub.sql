@@ -37,7 +37,7 @@
 with
 
 {% if is_incremental() %}
-{#- Get all target hash keys out of the existing hub for later incremental logic. #}
+{#- Get all target hash keys out of the existing hub for incremental logic. #}
 distinct_target_hash_keys as (
 
     select {{ hash_key }}
