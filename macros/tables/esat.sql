@@ -1,4 +1,4 @@
-{%- macro ttesat(source_models, parent_hash_key, src_ldts, src_rsrc, high_water_mark_bool, limit_sources_num, table_sample_prob) -%}
+{%- macro default__esat(source_models, parent_hash_key, src_ldts, src_rsrc, high_water_mark_bool, limit_sources_num, table_sample_prob) -%}
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
