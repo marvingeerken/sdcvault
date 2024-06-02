@@ -78,12 +78,12 @@ deduplicated_source_data as (
         {{ hash_diff_alias }},
         {{ datavault4dbt.print_list(source_cols) }}
     {%- if is_incremental() %},
-        row_number() over(partition by {{ datavault4dbt.print_list(unique_hash_key) }} order by {{ src_ldts }}) as rn
+        row_number() over(partition by {{ parent_hash_key }}, {{ ma_hash_key }} order by {{ src_ldts }}) as rn
     {%- endif %}
     from source_data
     qualify
         case
-            when {{ hash_diff_alias }} = lag({{ hash_diff_alias }}) over(partition by {{ datavault4dbt.print_list(unique_hash_key) }} order by {{ src_ldts }}) then false
+            when {{ hash_diff_alias }} = lag({{ hash_diff_alias }}) over(partition by {{ parent_hash_key }}, {{ ma_hash_key }} order by {{ src_ldts }}) then false
             else true
         end
 
@@ -96,30 +96,29 @@ deduplicated_source_data as (
 #}
 records_to_insert as (
 
-    select {{ datavault4dbt.print_list(unique_hash_key) }},
-        {{ hash_diff_alias }},
-        {{ src_ldts }},
-        {{ src_rsrc }},
+    select {{ datavault4dbt.print_list(unique_hash_key, src_alias='src') }},
+        src.{{ hash_diff_alias }},
+        src.{{ src_ldts }},
+        src.{{ src_rsrc }},
         false as is_deleted,
-        {{ datavault4dbt.print_list(src_payload) }}
+        {{ datavault4dbt.print_list(src_payload, src_alias='src') }}
     from {% if multi_batch_bool -%} deduplicated_ {%- endif -%} source_data src
 {%- if is_incremental() %}
-    where not exists (
-        select 1
-        from latest_entries_in_msat ltst
-        where
-            {{ datavault4dbt.multikey(parent_hash_key, prefix=['ltst', 'src'], condition='=') }}
-            and (
-                ltst.{{ src_ldts }} >= src.{{ src_ldts }}
-                or (
-                    {{ datavault4dbt.multikey(hash_diff_alias, prefix=['ltst', 'src'], condition='=') }}
-                    and not ltst.is_deleted
-                )
-            )
+    left join latest_entries_in_msat ltst
+        on {{ datavault4dbt.multikey(unique_hash_key, prefix=['src', 'ltst'], condition='=') }}
+    where
+        (
+            {{ datavault4dbt.multikey(hash_diff_alias, prefix=['src', 'ltst'], condition='!=') }}
+            and src.{{ src_ldts }} > ltst.{{ src_ldts }}
+        )
+        or ltst.is_deleted
+
     {% if multi_batch_bool -%}
-            and src.rn = 1
+        or (
+            src.rn != 1
+            and src.{{ src_ldts }} > ltst.{{ src_ldts }}
+        )
     {%- endif %}
-    )
 
     union all
 
