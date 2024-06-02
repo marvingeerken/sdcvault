@@ -4,7 +4,8 @@
 
 {%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set high_water_mark_bool = datavault4dbt.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%}
+{#%- set high_water_mark_bool = sdcvault.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%#}
+{%- set high_water_mark_bool = false -%}
 {%- set table_sample_prob = datavault4dbt.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
 {%- set multi_batch_bool = datavault4dbt.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
 
