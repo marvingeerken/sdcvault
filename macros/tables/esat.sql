@@ -37,7 +37,7 @@ distinct_target_records as (
 
     select *
     from {{ this }}
-    qualify row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }}) = 1
+    qualify row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }} desc) = 1
 
 ),
     {%- if ns.has_rsrc_static_defined and high_water_mark_bool -%}
