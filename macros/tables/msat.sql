@@ -105,11 +105,10 @@ records_to_insert as (
         {# Use current_timestamp() for reappearing records with old timestamp -#}
         case 
             when ltst.is_deleted and ltst.{{ src_ldts }} >= src.{{ src_ldts }}
-                then current_timestamp())
+                then current_timestamp()
             else src.{{ src_ldts }}
         end as {{ src_ldts }},
 {%- endif %}
-        src.{{ src_ldts }},
         src.{{ src_rsrc }},
         false as is_deleted,
         {{ datavault4dbt.print_list(src_payload, src_alias='src') }}
