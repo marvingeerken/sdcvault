@@ -111,9 +111,13 @@ default_values as (
     {% for col in final_columns_to_select | unique | list -%}
         {{ sdcvault.ghost_record(col)}}{%- if not loop.last -%},{% endif %}
     {% endfor -%}
+),
+
+final as (
+    select * from columns_to_select
+    union all 
+    select * from default_values
 )
 
-select * from columns_to_select
-union all 
-select * from default_values
-{%- endmacro -%}
+select * from final
+{%- endmacro %}
