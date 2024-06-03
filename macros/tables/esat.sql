@@ -14,7 +14,7 @@
     {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
     {%- set final_columns_to_select = [parent_hash_key, src_ldts, dv_inserted + src_rsrc] -%}
 {%- else -%}
-    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [src_rsrc] -%}
+    {%- set final_columns_to_select = [parent_hash_key, src_ldts, src_rsrc] -%}
 {%- endif -%}
 
 with
