@@ -12,7 +12,6 @@
 
 {%- if var('sdcvault.dv_inserted_bool', false) -%}
     {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
-    {%- set source_cols_inserted = datavault4dbt.expand_column_list(columns=[src_ldts, dv_inserted, src_rsrc, src_payload]) -%}
     {%- set final_columns_to_select = unique_hash_key + [hash_diff_alias, src_ldts, dv_inserted, src_rsrc, 'is_deleted'] + src_payload -%}
 {%- else -%}
     {%- set final_columns_to_select = unique_hash_key + [hash_diff_alias, src_ldts, src_rsrc, 'is_deleted'] + src_payload -%}

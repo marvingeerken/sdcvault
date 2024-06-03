@@ -13,7 +13,6 @@
 
 {%- if var('sdcvault.dv_inserted_bool', false) -%}
     {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
-    {%- set source_cols_inserted = datavault4dbt.expand_column_list(columns=[src_ldts, dv_inserted, src_rsrc, src_payload]) -%}
     {%- set final_columns_to_select = [parent_hash_key, hash_diff_alias, src_ldts, dv_inserted, src_rsrc] + src_payload -%}
 {%- else -%}
     {%- set final_columns_to_select = [parent_hash_key] + [hash_diff_alias] + source_cols -%}
@@ -42,6 +41,9 @@ source_data as (
             max({{ src_ldts }}) from {{ this }}
     )
 {% endif %}
+
+{%- set ns.last_cte = 'source_data' %}
+
 ),
 
 {# Get the latest record for each parent hashkey in existing sat, if incremental. #}
@@ -54,8 +56,6 @@ latest_entries_in_sat as (
         {{ src_ldts }}
     from {{ this }}
     qualify row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }} desc) = 1
-
-    {%- set ns.last_cte = 'latest_entries_in_sat' %}
 
 ),
 {%- endif %}
