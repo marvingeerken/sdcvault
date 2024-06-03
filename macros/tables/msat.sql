@@ -1,11 +1,8 @@
-{%- macro default__msat(source_model, parent_hash_key, ma_hash_key, hash_diff_alias, src_payload,
-                       src_ldts, src_rsrc, high_water_mark_bool, table_sample_prob, multi_batch_bool,
-                       hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
+{%- macro default__msat(source_model, parent_hash_key, ma_hash_key, hash_diff_alias, src_payload, src_ldts, src_rsrc,
+                        table_sample_prob, multi_batch_bool, hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
 
 {%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{#%- set high_water_mark_bool = sdcvault.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%#}
-{%- set high_water_mark_bool = false -%}
 {%- set table_sample_prob = datavault4dbt.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
 {%- set multi_batch_bool = datavault4dbt.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
 
@@ -13,6 +10,13 @@
 {%- set unique_hash_key = datavault4dbt.expand_column_list(columns=[parent_hash_key, ma_hash_key]) -%}
 {%- set source_relation = ref(source_model) -%}
 
+{%- if var('sdcvault.dv_inserted_bool', false) -%}
+    {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
+    {%- set source_cols_inserted = datavault4dbt.expand_column_list(columns=[src_ldts, dv_inserted, src_rsrc, src_payload]) -%}
+    {%- set final_columns_to_select = unique_hash_key + [hash_diff_alias, src_ldts, dv_inserted, src_rsrc, 'is_deleted'] + src_payload -%}
+{%- else -%}
+    {%- set final_columns_to_select = unique_hash_key + [hash_diff_alias, src_ldts, src_rsrc, 'is_deleted'] + src_payload -%}
+{%- endif -%}
 
 with
 
@@ -29,12 +33,6 @@ source_data as (
     tablesample ({{ table_sample_prob }})
 {% endif -%}
 
-{%- if is_incremental() and high_water_mark_bool %}
-    where {{ src_ldts }} > (
-        select
-            max({{ src_ldts }}) from {{ this }}
-    )
-{% endif %}
 ),
 
 {# Get the latest record for each parent hashkey in existing msat, if incremental. #}
@@ -95,7 +93,7 @@ deduplicated_source_data as (
     select all records from the previous CTE. If incremental, compare the oldest incoming entry to
     the existing records in the multi-active satellite.
 #}
-records_to_insert as (
+insert_union as (
 
     select {{ datavault4dbt.print_list(unique_hash_key, src_alias='src') }},
         src.{{ hash_diff_alias }},
@@ -136,6 +134,14 @@ records_to_insert as (
     from deleted_records
 
 {%- endif %}
+
+),
+
+
+records_to_insert as (
+
+    select {{ datavault4dbt.print_list(final_columns_to_select) }}
+    from insert_union
 
 )
 
