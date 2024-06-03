@@ -1,6 +1,5 @@
-{%- macro default__sat(source_model, parent_hash_key, hash_diff_alias, src_payload,
-                       src_ldts, src_rsrc, high_water_mark_bool, table_sample_prob, multi_batch_bool,
-                       hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
+{%- macro default__sat(source_model, parent_hash_key, hash_diff_alias, src_payload, src_ldts, src_rsrc,
+                       high_water_mark_bool, table_sample_prob, multi_batch_bool, hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
@@ -8,6 +7,7 @@
 {%- set table_sample_prob = sdcvault.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
 {%- set multi_batch_bool = sdcvault.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
 
+{%- set ns = namespace(last_cte= "") -%}
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[src_ldts, src_rsrc, src_payload]) -%}
 {%- set source_relation = ref(source_model) -%}
 
@@ -21,7 +21,6 @@
 
 
 with
-
 
 {# Selecting all source data, that is newer than latest data in sat if incremental #}
 source_data as (
@@ -54,7 +53,9 @@ latest_entries_in_sat as (
         {{ hash_diff_alias }},
         {{ src_ldts }}
     from {{ this }}
-    qualify row_number() over(partition by {{ parent_hash_key }} order by {{ src_ldts }} desc) = 1  
+    qualify row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }} desc) = 1
+
+    {%- set ns.last_cte = 'latest_entries_in_sat' %}
 
 ),
 {%- endif %}
@@ -71,15 +72,17 @@ deduplicated_source_data as (
         {{ hash_diff_alias }},
         {{ datavault4dbt.print_list(source_cols) }}
     {%- if is_incremental() %},
-    row_number() over(partition by {{ parent_hash_key }} order by {{ src_ldts }}) as rn
+    row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }}) as rn
     {%- endif %}
     from source_data
     qualify
         case
-            when {{ hash_diff_alias }} = lag({{ hash_diff_alias }}) over(partition by {{ parent_hash_key }} order by {{ src_ldts }}) then false
+            when {{ hash_diff_alias }} = lag({{ hash_diff_alias }}) over (partition by {{ parent_hash_key }} order by {{ src_ldts }}) then false
             else true
         end
 
+    {%- set ns.last_cte = 'deduplicated_source_data' %}
+    
 ),
 {%- endif %}
 
@@ -90,7 +93,7 @@ deduplicated_source_data as (
 records_to_insert as (
 
     select {{ datavault4dbt.print_list(final_columns_to_select) }}
-    from {% if multi_batch_bool -%} deduplicated_ {%- endif -%} source_data src
+    from {{ ns.last_cte }} src
 {%- if is_incremental() %}
     where not exists (
         select 1

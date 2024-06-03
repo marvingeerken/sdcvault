@@ -1,3 +1,8 @@
+{#- 
+    This macro creates Business Multi-Active Satellites, that show the current version. 
+    It uses the integrated is_deleted field of the MSAT to remove deleted keys (parent + ma-key).
+-#}
+
 {%- macro bmsat_curr(bv_curr_parent, rv_ma_satellite, hash_key, ma_hash_key) -%}
 
 {{- sdcvault.prepend_generated_by() }}

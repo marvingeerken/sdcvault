@@ -7,15 +7,18 @@
 {%- if not datavault4dbt.is_list(source_models) -%}
     {%- set source_models = [source_models] -%}
 {%- endif -%}
+
 {{- log('source_models: ' ~ source_models, false) -}}
+
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[parent_hash_key, src_ldts, src_rsrc]) -%}
 
 {%- if var('sdcvault.dv_inserted_bool', false) -%}
     {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
     {%- set final_columns_to_select = [parent_hash_key, src_ldts, dv_inserted + src_rsrc] -%}
 {%- else -%}
-    {%- set final_columns_to_select = [parent_hash_key, src_ldts, src_rsrc] -%}
+    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [src_rsrc] -%}
 {%- endif -%}
+
 
 with
 
@@ -28,8 +31,9 @@ distinct_target_records as (
     qualify row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }} desc) = 1
 
 ), 
-{% endif %}
+{%- endif %}
 
+{# Union all sources #}
 source_union as (
     {% for src in source_models %}
     select {{ datavault4dbt.print_list(source_cols) }}
@@ -42,10 +46,9 @@ source_union as (
 
 ),
 
-
+{# Deduplicate the unionized records again to only insert the earliest one. -#}
 earliest_hk_over_all_sources as (
 
-    {# Deduplicate the unionized records again to only insert the earliest one. -#}
     select *
     from source_union
     qualify row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }}) = 1
@@ -53,8 +56,7 @@ earliest_hk_over_all_sources as (
 
 ),
 
-
-{# Prepare insert -#}
+{# Union keys that are either new, deleted or reappearing #}
 insert_union as (
 
     {# Insert records from esat with is_deleted=false, if its not yet available -#}
@@ -64,7 +66,6 @@ insert_union as (
         false as is_deleted 
     from earliest_hk_over_all_sources
 
-{#- Following input matters on incremental runs only -#}
 {%- if is_incremental() %}
     where {{ parent_hash_key }} not in (
         select {{ parent_hash_key }}

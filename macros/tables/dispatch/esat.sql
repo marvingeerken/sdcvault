@@ -1,15 +1,15 @@
 {#-
     This macro creates Effectivity Satellites attached to Hubs or Links using the Primary Hash Key.
 
-    To allow parallel Raw Vault loading it uses the Esat own PKs to be compared to the stage.
-    That means the Hub/Link can hold PKs, that are not in the Esat. For example when the Hub/Links has been run own its own.
+    To allow parallel Raw Vault loading it uses the ESAT own PKs to be compared to the stage.
+    That means the Hub/Link can hold PKs, that are not in the ESAT. For example when the Hub/Links has been run own its own.
     That scenario should be considered in the Business Vault.
 
-    Its also not possible to calculate the actual delete timestamp, because we dont get this information as for instance from CDC.
-    For that pupose the current_timestamp() of the Esat execution is taken.
+    Its also not possible to calculate the actual is_delete timestamp, because we dont get this information as for instance from CDC.
+    For that pupose the current_timestamp() of the ESAT execution is taken.
 
-
-    doesnt work with multi source on multi batch (no macro will)
+    This macro doesnt work on multi batch stages / PSAs.
+    Also when combining multiple sources is only detects deletes over all soources. Create an ESAT per source if the information is required on this granularity.
 
 -#}
 

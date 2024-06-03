@@ -1,5 +1,5 @@
 {%- macro default__msat(source_model, parent_hash_key, ma_hash_key, hash_diff_alias, src_payload, src_ldts, src_rsrc,
-                        table_sample_prob, multi_batch_bool, hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
+                        table_sample_prob, hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
 
 {%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
@@ -18,6 +18,7 @@
     {%- set final_columns_to_select = unique_hash_key + [hash_diff_alias, src_ldts, src_rsrc, 'is_deleted'] + src_payload -%}
 {%- endif -%}
 
+
 with
 
 {# Selecting all source data, that is newer than latest data in msat if incremental #}
@@ -35,7 +36,7 @@ source_data as (
 
 ),
 
-{# Get the latest record for each parent hashkey in existing msat, if incremental. #}
+{# Get the latest record for each parent_hash_key + ma_hash_key in existing msat, if incremental #}
 {%- if is_incremental() %}
 latest_entries_in_msat as (
 
@@ -45,7 +46,7 @@ latest_entries_in_msat as (
 
 ),
 
-
+{# Detect new deleted unique_hash_keys #}
 deleted_records as (
 
     select {{ datavault4dbt.print_list(unique_hash_key) }},
@@ -57,8 +58,8 @@ deleted_records as (
     from latest_entries_in_msat msat 
     where not exists (
         select 1
-        from source_data stg
-        where {{ datavault4dbt.multikey(unique_hash_key, prefix=['msat','stg'], condition='=') | lower }}
+        from source_data src
+        where {{ datavault4dbt.multikey(unique_hash_key, prefix=['msat','src'], condition='=') | lower }}
     )
         and not coalesce(msat.is_deleted, false)
 
@@ -66,33 +67,7 @@ deleted_records as (
 
 {%- endif %}
 
-{%- if multi_batch_bool %}
-{#
-    Deduplicate source by comparing each hash diff to the hash diff of the previous record, for each hash key.
-    Additionally adding a row number based on that order, if incremental.
-#}
-deduplicated_source_data as (
-
-    select {{ datavault4dbt.print_list(unique_hash_key) }},
-        {{ hash_diff_alias }},
-        {{ datavault4dbt.print_list(source_cols) }}
-    {%- if is_incremental() %},
-        row_number() over(partition by {{ parent_hash_key }}, {{ ma_hash_key }} order by {{ src_ldts }}) as rn
-    {%- endif %}
-    from source_data
-    qualify
-        case
-            when {{ hash_diff_alias }} = lag({{ hash_diff_alias }}) over(partition by {{ parent_hash_key }}, {{ ma_hash_key }} order by {{ src_ldts }}) then false
-            else true
-        end
-
-),
-{%- endif %}
-
-{#
-    select all records from the previous CTE. If incremental, compare the oldest incoming entry to
-    the existing records in the multi-active satellite.
-#}
+{# Union new/changed and deleted records #}
 insert_union as (
 
     select {{ datavault4dbt.print_list(unique_hash_key, src_alias='src') }},
@@ -110,7 +85,7 @@ insert_union as (
         src.{{ src_rsrc }},
         false as is_deleted,
         {{ datavault4dbt.print_list(src_payload, src_alias='src') }}
-    from {% if multi_batch_bool -%} deduplicated_ {%- endif -%} source_data src
+    from source_data src
 {%- if is_incremental() %}
     left join latest_entries_in_msat ltst
         on {{ datavault4dbt.multikey(unique_hash_key, prefix=['src', 'ltst'], condition='=') }}
@@ -120,13 +95,6 @@ insert_union as (
             and src.{{ src_ldts }} > ltst.{{ src_ldts }}
         )
         or ltst.is_deleted
-
-    {% if multi_batch_bool -%}
-        or (
-            src.rn != 1
-            and src.{{ src_ldts }} > ltst.{{ src_ldts }}
-        )
-    {%- endif %}
 
     union all
 

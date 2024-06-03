@@ -1,4 +1,5 @@
-{%- macro hub(source_models, hash_key, business_key, src_ldts=none, src_rsrc=none, high_water_mark_bool=none, limit_sources_num=none, table_sample_prob=none) -%}
+{%- macro hub(source_models, hash_key, business_key, src_ldts=none, src_rsrc=none,
+              high_water_mark_bool=none, limit_sources_num=none, table_sample_prob=none) -%}
 
 {{- sdcvault.prepend_generated_by() }}
 

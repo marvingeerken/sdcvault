@@ -1,5 +1,5 @@
 {#- 
-    This macro creates Business Links. 
+    This macro creates Business Links, that show the current version. 
     A Business Link joins the Effectivity Satellite to remove deleted relationships.
     It also joins the Business Hub to remove relationships, that hold deleted Business Keys.
 -#}

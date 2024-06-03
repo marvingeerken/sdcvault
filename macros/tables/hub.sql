@@ -1,4 +1,5 @@
-{%- macro default__hub(source_models, hash_key, business_key, src_ldts, src_rsrc, high_water_mark_bool, limit_sources_num, table_sample_prob) -%}
+{%- macro default__hub(source_models, hash_key, business_key, src_ldts, src_rsrc,
+                       high_water_mark_bool, limit_sources_num, table_sample_prob) -%}
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
@@ -14,7 +15,7 @@
 
 {%- set ns = namespace(last_cte= "", source_included_before = {}, has_rsrc_static_defined=true, source_models_rsrc_dict={}) -%}
 
-{#- select the Business Key column from the first source model definition provided in the hub model and put them in an array. -#}
+{#- Select the Business Key column from the first source model definition provided in the hub model and put them in an array. -#}
 {%- set business_key = datavault4dbt.expand_column_list(columns=[business_key]) -%}
 
 {#- If no specific bk_columns is defined for each source, we apply the values set in the business_key variable. -#}
@@ -29,15 +30,13 @@
 {%- set source_models = source_model_values['source_model_list'] -%}
 {%- set ns.has_rsrc_static_defined = source_model_values['has_rsrc_static_defined'] -%}
 {%- set ns.source_models_rsrc_dict = source_model_values['source_models_rsrc_dict'] -%}
-{{- log('source_models: ' ~ source_models, false) -}}
 
 {%- if var('sdcvault.dv_inserted_bool', false) -%}
     {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
-    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [dv_inserted] + [src_rsrc] -%}
+    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts, dv_inserted, src_rsrc] -%}
 {%- else -%}
-    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [src_rsrc] -%}
+    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts, src_rsrc] -%}
 {%- endif -%}
-
 
 
 with
@@ -93,7 +92,7 @@ rsrc_static_{{ source_number }} as (
                 {%- set rsrc_static_result = run_query(rsrc_static_query_source) -%}
                 {%- set row_count = rsrc_static_result.columns[0].values()[0] -%}
 
-                {{ log('row_count for '~source_model~' is '~row_count, false) }}
+                {{ log('row_count for ' ~ source_model ~ ' is ' ~ row_count, false) }}
 
                 {%- if row_count == 0 -%}
                     {%- set source_in_target = false -%}
@@ -192,7 +191,6 @@ source_new_union as (
 
     select
         {{ hash_key }},
-
         {%- for bk in source_model['bk_columns'] %}
         {{ bk }} as {{ business_key[loop.index - 1] }},
         {%- endfor %}
