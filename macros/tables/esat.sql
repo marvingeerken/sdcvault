@@ -2,15 +2,20 @@
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set end_of_time = var('sdcvault.end_of_time') -%}
-
-{{- log('source_models: ' ~ source_models, false) -}}
+{%- set end_of_time = var('sdcvault.end_of_time', "'9999-12-31'") -%}
 
 {%- if not datavault4dbt.is_list(source_models) -%}
     {%- set source_models = [source_models] -%}
 {%- endif -%}
+{{- log('source_models: ' ~ source_models, false) -}}
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[parent_hash_key, src_ldts, src_rsrc]) -%}
 
+{%- if var('sdcvault.dv_inserted_bool', false) -%}
+    {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
+    {%- set final_columns_to_select = [parent_hash_key, src_ldts, dv_inserted + src_rsrc] -%}
+{%- else -%}
+    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [src_rsrc] -%}
+{%- endif -%}
 
 with
 
@@ -50,7 +55,7 @@ earliest_hk_over_all_sources as (
 
 
 {# Prepare insert -#}
-insert_rows as (
+insert_union as (
 
     {# Insert records from esat with is_deleted=false, if its not yet available -#}
     select {{ datavault4dbt.print_list(source_cols) }},
@@ -107,8 +112,15 @@ insert_rows as (
     where esat.{{ parent_hash_key }} is not null
         and esat.is_deleted
 {% endif %}
+),
+
+
+records_to_insert as (
+
+    select {{ datavault4dbt.print_list(final_columns_to_select) }}
+    from insert_union
+
 )
 
-
-select * from insert_rows
+select * from records_to_insert
 {%- endmacro %}

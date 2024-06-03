@@ -2,7 +2,8 @@
 
 {%- set ldts = var('sdcvault.ldts_alias', 'last_updated') -%}
 {%- set rsrc = var('sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set exclude_columns = [hash_key, ldts, rsrc]  -%}
+{%- set dv_inserted = var('sdcvault.dv_inserted_alias', 'dv_inserted_at')-%}
+{%- set exclude_columns = [hash_key, ldts, rsrc, dv_inserted]  -%}
 
 with 
 
@@ -28,7 +29,7 @@ final as (
         {{ sdcvault.integer_key(dbt_utils.get_filtered_columns_in_relation(ref(rv_hub), except=exclude_columns)) | lower }} as {{ hash_key | lower | replace('hk_','sk_') }},
 {%- endif %}
 
-        {{ dbt_utils.star(ref(rv_hub), except=[hash_key], relation_alias='hub', quote_identifiers=false) | lower | indent(6) }}
+        {{ dbt_utils.star(ref(rv_hub), except=[hash_key, dv_inserted], relation_alias='hub', quote_identifiers=false) | lower | indent(6) }}
 
     from {{ ref( rv_hub ) }} hub
     inner join esat

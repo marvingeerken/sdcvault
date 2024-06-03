@@ -2,7 +2,8 @@
 
 {%- set ldts = var('sdcvault.ldts_alias', 'last_updated') -%}
 {%- set rsrc = var('sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set exclude_columns = [hash_key, ldts, rsrc, 'hd_' ~ rv_satellite]  -%}
+{%- set dv_inserted = var('sdcvault.dv_inserted_alias', 'dv_inserted_at')-%}
+{%- set exclude_columns = [hash_key, ldts, rsrc, dv_inserted, 'hd_' ~ rv_satellite]  -%}
 
 with
 

@@ -31,7 +31,13 @@
 {%- set ns.source_models_rsrc_dict = source_model_values['source_models_rsrc_dict'] -%}
 {{- log('source_models: ' ~ source_models, false) -}}
 
-{%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [src_rsrc] -%}
+{%- if var('sdcvault.dv_inserted_bool', false) -%}
+    {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
+    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [dv_inserted] + [src_rsrc] -%}
+{%- else -%}
+    {%- set final_columns_to_select = [hash_key] + business_key + [src_ldts] + [src_rsrc] -%}
+{%- endif -%}
+
 
 
 with

@@ -9,8 +9,18 @@
 {%- set multi_batch_bool = sdcvault.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
 
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[src_ldts, src_rsrc, src_payload]) -%}
-{%- set final_columns_to_select = [parent_hash_key] + [hash_diff_alias] + source_cols -%}
 {%- set source_relation = ref(source_model) -%}
+
+{%- if var('sdcvault.dv_inserted_bool', false) -%}
+    {%- set dv_inserted = 'current_timestamp() as ' ~ var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
+    {%- set source_cols_inserted = datavault4dbt.expand_column_list(columns=[src_ldts, dv_inserted, src_rsrc, src_payload]) -%}
+    {%- set final_columns_to_select = [parent_hash_key, hash_diff_alias, src_ldts, dv_inserted, src_rsrc] + src_payload -%}
+{%- else -%}
+    {%- set final_columns_to_select = [parent_hash_key] + [hash_diff_alias] + source_cols -%}
+{%- endif -%}
+
+
+
 
 
 with
@@ -59,7 +69,10 @@ latest_entries_in_sat as (
 #}
 deduplicated_source_data as (
 
-    select {{ datavault4dbt.print_list(final_columns_to_select) }}
+    select
+        {{ parent_hash_key }},
+        {{ hash_diff_alias }},
+        {{ datavault4dbt.print_list(source_cols) }}
     {%- if is_incremental() %},
     row_number() over(partition by {{ parent_hash_key }} order by {{ src_ldts }}) as rn
     {%- endif %}
