@@ -1,31 +1,14 @@
-{%- macro default__esat(source_models, parent_hash_key, src_ldts, src_rsrc, high_water_mark_bool, limit_sources_num, table_sample_prob) -%}
+{%- macro default__esat(source_models, parent_hash_key, src_ldts, src_rsrc) -%}
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{#%- set high_water_mark_bool = sdcvault.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%#}
-{%- set high_water_mark_bool = false -%}
-{%- set limit_sources_num = sdcvault.replace_standard(limit_sources_num, 'sdcvault.limit_sources_num', -1) -%}
-{%- set table_sample_prob = sdcvault.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
-
 {%- set end_of_time = var('sdcvault.end_of_time') -%}
-
-{%- if datavault4dbt.is_list(source_models) and limit_sources_num != -1 -%}
-    {%- set source_models = source_models[:limit_sources_num] -%}
-{%- endif -%}
 
 {{- log('source_models: ' ~ source_models, false) -}}
 
-{%- set ns = namespace(last_cte= "", source_included_before = {}, has_rsrc_static_defined=true, source_models_rsrc_dict={}) -%}
-
-{%- if source_models is not mapping and not datavault4dbt.is_list(source_models) -%}
-    {%- set source_models = {source_models: {}} -%}
+{%- if not datavault4dbt.is_list(source_models) -%}
+    {%- set source_models = [source_models] -%}
 {%- endif -%}
-
-{%- set source_model_values = fromjson(datavault4dbt.source_model_processing(source_models=source_models, parameters={'hk_column':parent_hash_key})) -%}
-{%- set source_models = source_model_values['source_model_list'] -%}
-{%- set ns.has_rsrc_static_defined = source_model_values['has_rsrc_static_defined'] -%}
-{%- set ns.source_models_rsrc_dict = source_model_values['source_models_rsrc_dict'] -%}
-
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[parent_hash_key, src_ldts, src_rsrc]) -%}
 
 
@@ -39,167 +22,29 @@ distinct_target_records as (
     from {{ this }}
     qualify row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }} desc) = 1
 
-),
-    {%- if ns.has_rsrc_static_defined and high_water_mark_bool -%}
-        {% for source_model in source_models %}
-         {# Create a query with a rsrc_static column with each rsrc_static for each source model. #}
-            {%- set source_number = source_model.id | string -%}
-            {%- set rsrc_statics = ns.source_models_rsrc_dict[source_number] -%}
+), 
+{% endif %}
 
-            {{- log('rsrc_statics: '~ rsrc_statics, false) }}
-
-            {%- set rsrc_static_query_source -%}
-                select count(*) from (
-                {%- for rsrc_static in rsrc_statics -%}
-                    select {{ src_rsrc }}
-                    from {{ this }}
-                    where {{ src_rsrc }} ilike '{{ rsrc_static }}'
-                    {%- if not loop.last %}
-                        union all
-                    {% endif -%}
-                {%- endfor -%}
-                )
-            {%- endset %}
-
-            {{- log('rsrc static query: ' ~ rsrc_static_query_source, false) }}
-
-rsrc_static_{{ source_number }} as (
-            {% for rsrc_static in rsrc_statics %}
-    select 
-        *,
-        '{{ rsrc_static }}' as rsrc_static
-    from {{ this }}
-    where {{ src_rsrc }} like '{{ rsrc_static }}'
-                {%- if not loop.last %}
-        union all
-                {% endif -%}
-            {%- endfor %}
-            {% set ns.last_cte = "rsrc_static_{}".format(source_number) %}
-),
-            
-            {%- set source_in_target = true -%}
-            
-            {%- if execute -%}
-                {%- set rsrc_static_result = run_query(rsrc_static_query_source) -%}
-                {%- set row_count = rsrc_static_result.columns[0].values()[0] -%}
-
-                {{ log('row_count for '~source_model~' is '~row_count, false) }}
-
-                {%- if row_count == 0 -%}
-                    {%- set source_in_target = false -%}
-                {%- endif -%}
-            {%- endif -%}
-
-            {%- do ns.source_included_before.update({source_model.id: source_in_target}) -%}
-        {% endfor %}
-
-        {%- if source_models | length > 1 %}
-
-rsrc_static_union as (
-            {#- Create one unionized table over all sources. It will be the same as the already existing
-                esat, but extended by the rsrc_static column. #}
-            {%- for source_model in source_models %}
-                {%- set source_number = source_model.id | string %}
-
-    select * from rsrc_static_{{ source_number }}
-                {% if not loop.last %}
-    union all
-                {%- endif %}
-            {%- endfor %}
-            {%- set ns.last_cte = "rsrc_static_union" %}
-),
-        {% endif %}
-
-max_ldts_per_rsrc_static_in_target as (
-    {# Use the previously created CTE to calculate the max load date timestamp per rsrc_static. #}
-    select
-        rsrc_static,
-        max({{ src_ldts }}) as max_ldts
-    from {{ ns.last_cte }}
-    group by rsrc_static
-
-),
-    {%- endif %}
-{% endif -%}
-
-{% for source_model in source_models %}
-
-    {%- set source_number = source_model.id | string -%}
-
-    {%- if ns.has_rsrc_static_defined -%}
-        {%- set rsrc_statics = ns.source_models_rsrc_dict[source_number|string] -%}
-    {%- endif -%}
-
-    {%- if 'hk_column' not in source_model.keys() %}
-        {%- set hk_column = parent_hash_key -%}
-    {%- else -%}
-        {%- set hk_column = source_model['hk_column'] -%}
-    {% endif %}
-
-src_new_{{ source_number }} as (
-
-    select
-        src.{{ hk_column }} as {{ parent_hash_key }},
-        src.{{ src_ldts }},
-        src.{{ src_rsrc }}
-    from {{ ref(source_model.name) }} src
-    {{- log('rsrc_statics defined?: ' ~ ns.source_models_rsrc_dict[source_number | string], false) -}}
-
-    {%- if table_sample_prob != -1 %}
-    tablesample ({{ table_sample_prob }})
-    {%- endif %}
-
-    {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number | int] and high_water_mark_bool %}
-    inner join max_ldts_per_rsrc_static_in_target maxl
-        on
-        {%- for rsrc_static in rsrc_statics %}
-            maxl.rsrc_static = '{{ rsrc_static }}'
-            {%- if not loop.last -%} or
-            {% endif -%}
-        {%- endfor %}
-    where src.{{ src_ldts }} > maxl.max_ldts
-    {%- elif is_incremental() and source_models | length == 1 and not ns.has_rsrc_static_defined and high_water_mark_bool %}
-    where src.{{ src_ldts }} > (
-        select max({{ src_ldts }})
-        from {{ this }}
-    )
-    {%- endif -%}
-
-    {%- set ns.last_cte = "src_new_{}".format(source_number) %}
-
-),
-{%- endfor %}
-
-{% if source_models | length > 1 %}
-source_new_union as (
-
-    {%- for source_model in source_models -%}
-
-        {% set source_number = source_model.id | string %}
-
-    select
-        {{ parent_hash_key }},
-        {{ src_ldts }},
-        {{ src_rsrc }}
-    from src_new_{{ source_number }}
+source_union as (
+    {% for src in source_models %}
+    select {{ datavault4dbt.print_list(source_cols) }}
+    from {{ ref(src) }}
         {% if not loop.last %}
     union all
-        {%- endif -%}
+        {% endif %}
 
     {%- endfor %}
 
-    {%- set ns.last_cte = 'source_new_union' %}
 ),
-{% endif %}
+
 
 earliest_hk_over_all_sources as (
 
     {# Deduplicate the unionized records again to only insert the earliest one. -#}
     select *
-    from {{ ns.last_cte }}
+    from source_union
     qualify row_number() over (partition by {{ parent_hash_key }} order by {{ src_ldts }}) = 1
 
-{%- set ns.last_cte = 'earliest_hk_over_all_sources' %}
 
 ),
 
@@ -212,7 +57,7 @@ insert_rows as (
         {{ src_ldts }} as start_date,
         to_timestamp({{ end_of_time }}) as end_date,    
         false as is_deleted 
-    from {{ ns.last_cte }}
+    from earliest_hk_over_all_sources
 
 {#- Following input matters on incremental runs only -#}
 {%- if is_incremental() %}
@@ -235,7 +80,7 @@ insert_rows as (
     where not is_deleted 
         and {{ parent_hash_key }} not in (
             select {{ parent_hash_key }}
-            from {{ ns.last_cte }}
+            from earliest_hk_over_all_sources
         )
 
     union all
@@ -256,7 +101,7 @@ insert_rows as (
         to_timestamp({{ end_of_time }}) as end_date,
         false as is_deleted
 
-    from {{ ns.last_cte }} stg
+    from earliest_hk_over_all_sources stg
     left join distinct_target_records esat
         on {{ datavault4dbt.multikey(parent_hash_key, prefix=['stg', 'esat'], condition='=') }}
     where esat.{{ parent_hash_key }} is not null

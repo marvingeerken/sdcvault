@@ -13,11 +13,10 @@
 
 -#}
 
-{%- macro esat(source_models, parent_hash_key, src_ldts=none, src_rsrc=none, high_water_mark_bool=none, limit_sources_num=none, table_sample_prob=none) -%}
+{%- macro esat(source_models, parent_hash_key, src_ldts=none, src_rsrc=none) -%}
 
 {{- sdcvault.prepend_generated_by() }}
 
-{{ adapter.dispatch('esat', 'sdcvault')(source_models=source_models, parent_hash_key=parent_hash_key, src_ldts=src_ldts, src_rsrc=src_rsrc,
-                                        high_water_mark_bool=high_water_mark_bool, limit_sources_num=limit_sources_num, table_sample_prob=table_sample_prob) }}
+{{ adapter.dispatch('esat', 'sdcvault')(source_models=source_models, parent_hash_key=parent_hash_key, src_ldts=src_ldts, src_rsrc=src_rsrc) }}
 
 {% endmacro %}
