@@ -13,17 +13,30 @@
 
 with
 
+{% if limit_sources_num == -1 and table_sample_prob == -1 %}
+esat as (
+
+    select 
+        {{ link_hash_key }},
+        is_deleted
+    from {{ ref( rv_esat ) }}
+    qualify row_number() over (partition by {{ link_hash_key }} order by {{ ldts }} desc) = 1
+
+),
+{% endif %}
+
+
 link as (
 
     select
         link.*,
         esat.is_deleted
     from {{ ref(rv_link) }} link
+{%- if limit_sources_num == -1 and table_sample_prob == -1 %}
     inner join {{ ref(rv_esat) }} esat
         on link.{{ link_hash_key }} = esat.{{ link_hash_key }}
-    where link.{{ link_hash_key }} != {{ var('sdcvault.ghost_hk') }}::binary(16)
-    qualify row_number() over (partition by link.{{ link_hash_key }} order by esat.{{ ldts }} desc) = 1
-
+    where not link.is_deleted
+{% endif %}
 ),
 
 
@@ -59,7 +72,6 @@ blink as (
     inner join {{ ref(bhub.name) }} {{bhub.name}}
         on link.{{bhub.hk}} = {{bhub.name}}.{{bhub.hk}}
     {%- endfor %}
-    where not link.is_deleted
 
 )
 

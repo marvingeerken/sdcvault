@@ -2,11 +2,19 @@
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
+{%- set limit_sources_num = var('sdcvault.limit_sources_num', -1) | int-%}
+{%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
 {%- set end_of_time = var('sdcvault.end_of_time', "'9999-12-31'") -%}
 
 {%- if not datavault4dbt.is_list(source_models) -%}
     {%- set source_models = [source_models] -%}
 {%- endif -%}
+
+{%- if limit_sources_num != -1 -%}
+    {%- set source_models = source_models[:limit_sources_num] -%}
+{%- endif -%}
+
+{%- set ns = namespace(last_cte= "") -%}
 
 {{- log('source_models: ' ~ source_models, false) -}}
 
@@ -35,14 +43,18 @@ distinct_target_records as (
 
 {# Union all sources #}
 source_union as (
-    {% for src in source_models %}
+{% for src in source_models %}
     select {{ datavault4dbt.print_list(source_cols) }}
     from {{ ref(src) }}
-        {% if not loop.last %}
-    union all
-        {% endif %}
 
-    {%- endfor %}
+    {%- if table_sample_prob != -1 %}
+    tablesample ({{ table_sample_prob }})
+    {%- endif %}
+    {% if not loop.last %}
+    union all
+    {% endif %}
+
+{%- endfor %}
 
 ),
 
@@ -72,6 +84,7 @@ insert_union as (
         from distinct_target_records
     )
 
+    {%- if limit_sources_num == -1 and table_sample_prob == -1 %}
     union all
 
     {# Insert records from esat with is_deleted=true, if they are not available in stage and not yet as deleted esat -#}
@@ -112,6 +125,7 @@ insert_union as (
         on {{ datavault4dbt.multikey(parent_hash_key, prefix=['stg', 'esat'], condition='=') }}
     where esat.{{ parent_hash_key }} is not null
         and esat.is_deleted
+    {%- endif %}
 {% endif %}
 ),
 

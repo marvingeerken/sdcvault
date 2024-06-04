@@ -12,12 +12,12 @@
 #}
 
 {%- macro msat(source_model, parent_hash_key, ma_hash_key, hash_diff_alias, src_payload, src_ldts=none, src_rsrc=none,
-               table_sample_prob=none, hash_diff_exclude=[], hash_diff_case_sensitive_bool=none) -%}
+               hash_diff_exclude=[], hash_diff_case_sensitive_bool=none) -%}
 
 {{- sdcvault.prepend_generated_by() }}
 
 {{ adapter.dispatch('msat', 'sdcvault')(source_model=source_model, parent_hash_key=parent_hash_key, ma_hash_key=ma_hash_key, hash_diff_alias=hash_diff_alias, 
-                                        src_payload=src_payload, src_ldts=src_ldts, src_rsrc=src_rsrc, table_sample_prob=table_sample_prob,
+                                        src_payload=src_payload, src_ldts=src_ldts, src_rsrc=src_rsrc,
                                         hash_diff_exclude=hash_diff_exclude, hash_diff_case_sensitive_bool=hash_diff_case_sensitive_bool) }}
 
 {% endmacro %}

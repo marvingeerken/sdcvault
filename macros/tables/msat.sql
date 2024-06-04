@@ -1,10 +1,10 @@
 {%- macro default__msat(source_model, parent_hash_key, ma_hash_key, hash_diff_alias, src_payload, src_ldts, src_rsrc,
-                        table_sample_prob, hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
+                        hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
 
 {%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set table_sample_prob = datavault4dbt.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
 {%- set multi_batch_bool = datavault4dbt.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
+{%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
 
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[src_ldts, src_rsrc, src_payload]) -%}
 {%- set unique_hash_key = datavault4dbt.expand_column_list(columns=[parent_hash_key, ma_hash_key]) -%}
@@ -31,7 +31,7 @@ source_data as (
 
 {%- if table_sample_prob != -1 %}
     tablesample ({{ table_sample_prob }})
-{% endif -%}
+{%- endif %}
 
 ),
 
@@ -45,7 +45,8 @@ latest_entries_in_msat as (
 
 ),
 
-{# Detect new deleted unique_hash_keys #}
+    {% if table_sample_prob == -1 %}
+    {#- Detect new deleted unique_hash_keys #}
 deleted_records as (
 
     select {{ datavault4dbt.print_list(unique_hash_key) }},
@@ -63,7 +64,7 @@ deleted_records as (
         and not coalesce(msat.is_deleted, false)
 
 ),
-
+    {%- endif %}
 {%- endif %}
 
 {# Union new/changed and deleted records #}
@@ -95,10 +96,12 @@ insert_union as (
         )
         or ltst.is_deleted
 
+    {%- if table_sample_prob == -1 %}
     union all
 
     select *
     from deleted_records
+    {%- endif %}
 
 {%- endif %}
 
