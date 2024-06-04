@@ -23,7 +23,7 @@
 
 {#- if single column to hash -#}
 {%- if columns is string -%}
-    {%- set column_str = automate_dv.as_constant(columns) -%}
+    {%- set column_str = sdcvault.as_constant(columns) -%}
     {%- set escaped_column_str = column_str -%}
 
     {{- "cast(({}({})) as binary({})) as {}".format(hash_alg, standardise | replace('[expression]', escaped_column_str), hash_size, alias) | indent(4) -}}
@@ -40,7 +40,7 @@
 
         {%- do all_null.append(null_placeholder_string) -%}
 
-        {%- set column_str = automate_dv.as_constant(column) -%}
+        {%- set column_str = sdcvault.as_constant(column) -%}
         {%- set escaped_column_str = column_str -%}
 
         {{- "\nifnull({}, '{}')".format(standardise | replace('[expression]', escaped_column_str), null_placeholder_string) | indent(4) -}}
