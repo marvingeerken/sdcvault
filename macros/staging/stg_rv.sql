@@ -52,9 +52,8 @@ source_data as (
 {% if datavault4dbt.is_something(derived_columns) %}
 derived_columns as (
 
-    select {{ datavault4dbt.print_list(final_columns_to_select) }},
-
-        {{ sdcvault.derive_columns(columns=derived_columns) | indent(8) }}
+    select
+        {{ sdcvault.derive_columns(source_relation=source_relation, columns=derived_columns) | indent(8) }}
 
     from {{ last_cte }}
     {%- set last_cte = "derived_columns" %}

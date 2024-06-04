@@ -89,7 +89,7 @@
             {{- datavault4dbt.escape_column_name(col) -}}{{ ",\n" if not loop.last }}
 
         {%- else -%}
-            {{- col -}}{{ ",\n" if not loop.last }}
+            {{- col | lower -}}{{ ",\n" if not loop.last }}
         {%- endif -%}
     {%- endfor -%}
 
