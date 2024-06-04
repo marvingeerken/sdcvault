@@ -1,15 +1,15 @@
 {%- macro default__nlink(source_models, link_hash_key, foreign_hash_keys, src_payload, src_ldts, src_rsrc,
-                         high_water_mark_bool, limit_sources_num, table_sample_prob, multi_batch_bool) -%}
+                         high_water_mark_bool, multi_batch_bool) -%}
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
 {%- set high_water_mark_bool = sdcvault.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%}
-{%- set limit_sources_num = sdcvault.replace_standard(limit_sources_num, 'sdcvault.limit_sources_num', -1) -%}
-{%- set table_sample_prob = sdcvault.replace_standard(table_sample_prob, 'sdcvault.table_sample_prob', -1) -%}
 {%- set multi_batch_bool = sdcvault.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
+{%- set limit_sources_num = var('sdcvault.limit_sources_num', -1) | int -%}
+{%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
 
 {%- if datavault4dbt.is_list(source_models) and limit_sources_num != -1 -%}
-    {%- set source_models = source_models[:limit_sources_num] -%}
+    {%- set source_models = source_models[:limit_sources_num | int] -%}
 {%- endif -%}
 
 {{- log('source_models: '~  source_models, false) -}}

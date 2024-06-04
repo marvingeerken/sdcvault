@@ -2,7 +2,7 @@
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set limit_sources_num = var('sdcvault.limit_sources_num', -1) | int-%}
+{%- set limit_sources_num = var('sdcvault.limit_sources_num', -1) | int -%}
 {%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
 {%- set end_of_time = var('sdcvault.end_of_time', "'9999-12-31'") -%}
 

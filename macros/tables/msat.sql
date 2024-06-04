@@ -3,7 +3,6 @@
 
 {%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set multi_batch_bool = datavault4dbt.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
 {%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
 
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[src_ldts, src_rsrc, src_payload]) -%}
