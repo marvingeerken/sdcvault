@@ -28,9 +28,7 @@ esat as (
 
 link as (
 
-    select
-        link.*,
-        esat.is_deleted
+    select link.*
     from {{ ref(rv_link) }} link
 {%- if limit_sources_num == -1 and table_sample_prob == -1 %}
     inner join {{ ref(rv_esat) }} esat
