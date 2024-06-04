@@ -18,7 +18,6 @@ msat as (
 
     select *
     from {{ ref(rv_ma_satellite) }}
-    where {{ hash_key }} != {{ var('sdcvault.ghost_hk') }}::binary(16)
     qualify row_number() over (partition by {{ hash_key }}, {{ ma_hash_key }} order by {{ ldts }} desc) = 1
 
 ),

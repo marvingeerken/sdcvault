@@ -18,7 +18,6 @@ sat as (
 
     select *
     from {{ ref(rv_satellite) }}
-    where {{ hash_key }} != {{ var('sdcvault.ghost_hk') }}::binary(16)
     qualify row_number() over (partition by {{ hash_key }} order by {{ ldts }} desc) = 1
 
 ),
