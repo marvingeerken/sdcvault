@@ -13,7 +13,7 @@
 
 with
 
-{% if limit_sources_num == -1 and table_sample_prob == -1 %}
+{% if limit_sources == -1 and table_sample == -1 %}
 esat as (
 
     select 
@@ -30,7 +30,7 @@ link as (
 
     select link.*
     from {{ ref(rv_link) }} link
-{%- if limit_sources_num == -1 and table_sample_prob == -1 %}
+{%- if limit_sources == -1 and table_sample == -1 %}
     inner join {{ ref(rv_esat) }} esat
         on link.{{ link_hash_key }} = esat.{{ link_hash_key }}
     where not link.is_deleted

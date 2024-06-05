@@ -1,13 +1,13 @@
-{%- macro default__hub(source_models, hash_key, business_key, src_ldts, src_rsrc, high_water_mark_bool) -%}
+{%- macro default__hub(source_models, hash_key, business_key, src_ldts, src_rsrc, high_water_mark) -%}
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set high_water_mark_bool = sdcvault.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%}
-{%- set limit_sources_num = var('sdcvault.limit_sources_num', -1) | int -%}
-{%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
+{%- set high_water_mark = sdcvault.replace_standard(high_water_mark, 'sdcvault.high_water_mark', true) -%}
+{%- set limit_sources = var('sdcvault.limit_sources', -1) | int -%}
+{%- set table_sample = var('sdcvault.table_sample', -1) | int -%}
 
-{%- if datavault4dbt.is_list(source_models) and limit_sources_num != -1 -%}
-    {%- set source_models = source_models[:limit_sources_num | int] -%}
+{%- if datavault4dbt.is_list(source_models) and limit_sources != -1 -%}
+    {%- set source_models = source_models[:limit_sources | int] -%}
 {%- endif -%}
 
 {{- log('source_models'~source_models, false) -}}
@@ -48,7 +48,7 @@ distinct_target_hash_keys as (
     from {{ this }}
 
 ),
-    {%- if ns.has_rsrc_static_defined and high_water_mark_bool -%}
+    {%- if ns.has_rsrc_static_defined and high_water_mark -%}
         {% for source_model in source_models %}
          {# Create a query with a rsrc_static column with each rsrc_static for each source model. #}
             {%- set source_number = source_model.id | string -%}
@@ -156,11 +156,11 @@ src_new_{{ source_number }} as (
     from {{ ref(source_model.name) }} src
     {{- log('rsrc_statics defined?: ' ~ ns.source_models_rsrc_dict[source_number | string], false) -}}
 
-    {%- if table_sample_prob != -1 %}
-    tablesample ({{ table_sample_prob }})
+    {%- if table_sample != -1 %}
+    tablesample ({{ table_sample }})
     {%- endif %}
 
-    {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number | int] and high_water_mark_bool %}
+    {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number | int] and high_water_mark %}
     inner join max_ldts_per_rsrc_static_in_target maxl
         on
         {%- for rsrc_static in rsrc_statics %}
@@ -169,7 +169,7 @@ src_new_{{ source_number }} as (
             {% endif -%}
         {%- endfor %}
     where src.{{ src_ldts }} > maxl.max_ldts
-    {%- elif is_incremental() and source_models | length == 1 and not ns.has_rsrc_static_defined and high_water_mark_bool %}
+    {%- elif is_incremental() and source_models | length == 1 and not ns.has_rsrc_static_defined and high_water_mark %}
     where src.{{ src_ldts }} > (
         select max({{ src_ldts }})
         from {{ this }}

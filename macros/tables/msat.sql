@@ -3,7 +3,7 @@
 
 {%- set src_ldts = datavault4dbt.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = datavault4dbt.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
+{%- set table_sample = var('sdcvault.table_sample', -1) | int -%}
 
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[src_ldts, src_rsrc, src_payload]) -%}
 {%- set unique_hash_key = datavault4dbt.expand_column_list(columns=[parent_hash_key, ma_hash_key]) -%}
@@ -28,8 +28,8 @@ source_data as (
         {{ datavault4dbt.print_list(source_cols) }}
     from {{ source_relation }}
 
-{%- if table_sample_prob != -1 %}
-    tablesample ({{ table_sample_prob }})
+{%- if table_sample != -1 %}
+    tablesample ({{ table_sample }})
 {%- endif %}
 
 ),
@@ -44,7 +44,7 @@ latest_entries_in_msat as (
 
 ),
 
-    {% if table_sample_prob == -1 %}
+    {% if table_sample == -1 %}
     {#- Detect new deleted unique_hash_keys #}
 deleted_records as (
 
@@ -95,7 +95,7 @@ insert_union as (
         )
         or ltst.is_deleted
 
-    {%- if table_sample_prob == -1 %}
+    {%- if table_sample == -1 %}
     union all
 
     select *

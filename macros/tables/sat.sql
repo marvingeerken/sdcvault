@@ -1,11 +1,11 @@
 {%- macro default__sat(source_model, parent_hash_key, hash_diff_alias, src_payload, src_ldts, src_rsrc,
-                       high_water_mark_bool, multi_batch_bool, hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
+                       high_water_mark, multi_batch_bool, hash_diff_exclude, hash_diff_case_sensitive_bool) -%}
 
 {%- set src_ldts = sdcvault.replace_standard(src_ldts, 'sdcvault.ldts_alias', 'last_updated') -%}
 {%- set src_rsrc = sdcvault.replace_standard(src_rsrc, 'sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set high_water_mark_bool = sdcvault.replace_standard(high_water_mark_bool, 'sdcvault.high_water_mark_bool', true) -%}
+{%- set high_water_mark = sdcvault.replace_standard(high_water_mark, 'sdcvault.high_water_mark', true) -%}
 {%- set multi_batch_bool = sdcvault.replace_standard(multi_batch_bool, 'sdcvault.multi_batch_bool', false) -%}
-{%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
+{%- set table_sample = var('sdcvault.table_sample', -1) | int -%}
 
 {%- set ns = namespace(last_cte= "") -%}
 {%- set source_cols = datavault4dbt.expand_column_list(columns=[src_ldts, src_rsrc, src_payload]) -%}
@@ -31,11 +31,11 @@ source_data as (
         {{ datavault4dbt.print_list(source_cols) }}
     from {{ source_relation }}
 
-{%- if table_sample_prob != -1 %}
-    tablesample ({{ table_sample_prob }})
+{%- if table_sample != -1 %}
+    tablesample ({{ table_sample }})
 {% endif -%}
 
-{%- if is_incremental() and high_water_mark_bool %}
+{%- if is_incremental() and high_water_mark %}
     where {{ src_ldts }} > (
         select
             max({{ src_ldts }}) from {{ this }}

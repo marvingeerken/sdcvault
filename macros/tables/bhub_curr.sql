@@ -3,13 +3,13 @@
 {%- set ldts = var('sdcvault.ldts_alias', 'last_updated') -%}
 {%- set rsrc = var('sdcvault.rsrc_alias', 'dv_source') -%}
 {%- set dv_inserted = var('sdcvault.dv_inserted_alias', 'dv_inserted_at')-%}
-{%- set limit_sources_num = var('sdcvault.limit_sources_num', -1) | int-%}
-{%- set table_sample_prob = var('sdcvault.table_sample_prob', -1) | int -%}
+{%- set limit_sources = var('sdcvault.limit_sources', -1) | int-%}
+{%- set table_sample = var('sdcvault.table_sample', -1) | int -%}
 {%- set exclude_columns = [hash_key, ldts, rsrc, dv_inserted]  -%}
 
 with 
 
-{% if limit_sources_num == -1 and table_sample_prob == -1 %}
+{% if limit_sources == -1 and table_sample == -1 %}
 esat as (
 
     select 
@@ -36,7 +36,7 @@ final as (
         {{ dbt_utils.star(ref(rv_hub), except=[hash_key, dv_inserted], relation_alias='hub', quote_identifiers=false) | lower | indent(6) }}
 
     from {{ ref( rv_hub ) }} hub
-{% if limit_sources_num == -1 and table_sample_prob == -1 %}
+{% if limit_sources == -1 and table_sample == -1 %}
     inner join esat
         on hub.{{hash_key}} = esat.{{ hash_key }}
     where not esat.is_deleted

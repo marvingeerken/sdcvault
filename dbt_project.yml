@@ -18,11 +18,11 @@ clean-targets:
 vars:
   # High-water mark on Hub, Link and Satellite macro. 
   # Run --vars 'sdcvault.high_water_mark: false' to load late arriving records like new systems in erpall.
-  sdcvault.high_water_mark_bool: true
+  sdcvault.high_water_mark: true
 
   # Optional data limitations, recommended for development or CI purposes
-  sdcvault.limit_sources_num: "{{ -1 if target.name in ['default','CI'] else -1 }}" # Limits the sources in multi-source objects
-  sdcvault.table_sample_prob: "{{ -1 if target.name in ['default','CI'] else -1 }}" # Adds a tablesample() to the source tables
+  sdcvault.limit_sources: "{{ -1 if target.name in ['default','CI'] else -1 }}" # Limits the sources in multi-source objects
+  sdcvault.table_sample: "{{ -1 if target.name in ['default','CI'] else -1 }}" # Adds a tablesample() to the source tables
 
   # Optional key creation for Business Vault macros
   sdcvault.natural_key: false # Provides a non-hashed version of the hash key
