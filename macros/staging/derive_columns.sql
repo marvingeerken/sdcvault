@@ -80,7 +80,7 @@
     {%- endif -%}
 
     {#- Makes sure the columns are appended in a logical order. Source columns then derived columns -#}
-    {%- set include_columns = src_columns + der_columns -%}
+    {%- set include_columns = (src_columns | map('lower') | list) + der_columns -%}
     {%- set columns_to_escape = sdcvault.process_columns_to_escape(columns) | list -%}
 
     {#- Print out all columns in includes -#}
@@ -89,7 +89,7 @@
             {{- datavault4dbt.escape_column_name(col) -}}{{ ",\n" if not loop.last }}
 
         {%- else -%}
-            {{- col | lower -}}{{ ",\n" if not loop.last }}
+            {{- col -}}{{ ",\n" if not loop.last }}
         {%- endif -%}
     {%- endfor -%}
 
