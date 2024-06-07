@@ -35,7 +35,7 @@ link as (
 {%- if limit_sources == -1 and table_sample == -1 %}
     inner join {{ ref(rv_esat) }} esat
         on link.{{ link_hash_key }} = esat.{{ link_hash_key }}
-    where not link.is_deleted
+    where not esat.is_deleted
 {% endif %}
 ),
 
