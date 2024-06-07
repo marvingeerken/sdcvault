@@ -8,7 +8,9 @@
 
 {%- set ldts = var('sdcvault.ldts_alias', 'last_updated') -%}
 {%- set rsrc = var('sdcvault.rsrc_alias', 'dv_source') -%}
-{%- set dv_inserted = var('sdcvault.dv_inserted_alias', 'dv_inserted_at')-%}
+{%- set dv_inserted = var('sdcvault.dv_inserted_alias', 'dv_inserted_at') -%}
+{%- set limit_sources = var('sdcvault.limit_sources', -1) | int-%}
+{%- set table_sample = var('sdcvault.table_sample', -1) | int -%}
 {%- set exclude_columns = [hash_key, ldts, rsrc, dv_inserted]  -%}
 
 with
