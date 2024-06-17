@@ -9,10 +9,16 @@
 {%- set table_sample = var('sdcvault.table_sample', -1) | int -%}
 
 {%- if datavault4dbt.is_list(source_models) and limit_sources != -1 -%}
-    {%- set source_models = source_models[:limit_sources | int] -%}
-{%- endif -%}
+/*
+  Excluded sources on source limit:
+    {%- for source in source_models[limit_sources:] %}
+    {{ ref(source.name) }}
+    {%- endfor %}
+*/
+    {% set source_models = source_models[:limit_sources] %}
+{% endif %}
 
-{{- log('source_models: '~  source_models, false) -}}
+{{- log('source_models' ~ source_models, false) -}}
 
 {%- set ns = namespace(last_cte= "", source_included_before = {}, has_rsrc_static_defined=true, source_models_rsrc_dict={}) -%}
 
