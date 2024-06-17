@@ -11,13 +11,14 @@
 {%- endif -%}
 
 {%- if limit_sources != -1 -%}
+    {%- set included_sources = source_models[:limit_sources] + source_models[-1:] -%}
 /*
   Excluded sources on source limit:
-    {%- for source in source_models[limit_sources:] %}
+    {%- for source in source_models if source not in included_sources %}
     {{ ref(source) }}
     {%- endfor %}
 */
-    {% set source_models = source_models[:limit_sources] %}
+    {% set source_models = included_sources %}
 {% endif %}
 
 {%- set ns = namespace(last_cte= "") -%}

@@ -9,13 +9,14 @@
 {%- set table_sample = var('sdcvault.table_sample', -1) | int -%}
 
 {%- if datavault4dbt.is_list(source_models) and limit_sources != -1 -%}
+    {%- set included_sources = source_models[:limit_sources] + source_models[-1:] -%}
 /*
   Excluded sources on source limit:
-    {%- for source in source_models[limit_sources:] %}
+    {%- for source in source_models if source not in included_sources %}
     {{ ref(source.name) }}
     {%- endfor %}
 */
-    {% set source_models = source_models[:limit_sources] %}
+    {% set source_models = included_sources %}
 {% endif %}
 
 {{- log('source_models' ~ source_models, false) -}}
