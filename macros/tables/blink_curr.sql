@@ -25,8 +25,9 @@ esat as (
     qualify row_number() over (partition by {{ link_hash_key }} order by {{ ldts }} desc) = 1
 
 ),
+{%- else %}
+-- Excluded on dev limit: {{ ref( rv_esat ) }}
 {% endif %}
-
 
 link as (
 
