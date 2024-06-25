@@ -93,7 +93,7 @@ insert_union as (
             {{ datavault4dbt.multikey(hash_diff_alias, prefix=['src', 'ltst'], condition='!=') }}
             and src.{{ src_ldts }} > ltst.{{ src_ldts }}
         )
-        or ltst.is_deleted
+        or coalesce(ltst.is_deleted, true)
 
     {%- if table_sample == -1 %}
     union all
