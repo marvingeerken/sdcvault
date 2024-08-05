@@ -35,7 +35,7 @@ source_data as (
     tablesample ({{ table_sample }})
 {% endif -%}
 
-{%- if is_incremental() and high_water_mark %}
+{%- if is_incremental() and high_water_mark is true %}
     where {{ src_ldts }} > (
         select
             max({{ src_ldts }}) from {{ this }}

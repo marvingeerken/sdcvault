@@ -55,7 +55,7 @@ distinct_target_hash_keys as (
     from {{ this }}
 
 ),
-    {%- if ns.has_rsrc_static_defined and high_water_mark -%}
+    {%- if ns.has_rsrc_static_defined and high_water_mark is true -%}
         {% for source_model in source_models %}
          {# Create a query with a rsrc_static column with each rsrc_static for each source model. #}
             {%- set source_number = source_model.id | string -%}
@@ -167,7 +167,7 @@ src_new_{{ source_number }} as (
     tablesample ({{ table_sample }})
     {%- endif %}
 
-    {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number | int] and high_water_mark %}
+    {%- if is_incremental() and ns.has_rsrc_static_defined and ns.source_included_before[source_number | int] and high_water_mark is true %}
     inner join max_ldts_per_rsrc_static_in_target maxl
         on
         {%- for rsrc_static in rsrc_statics %}
@@ -176,7 +176,7 @@ src_new_{{ source_number }} as (
             {% endif -%}
         {%- endfor %}
     where src.{{ src_ldts }} > maxl.max_ldts
-    {%- elif is_incremental() and source_models | length == 1 and not ns.has_rsrc_static_defined and high_water_mark %}
+    {%- elif is_incremental() and source_models | length == 1 and not ns.has_rsrc_static_defined and high_water_mark is true %}
     where src.{{ src_ldts }} > (
         select max({{ src_ldts }})
         from {{ this }}
