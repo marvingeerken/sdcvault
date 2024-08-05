@@ -1,4 +1,4 @@
-{%- macro natural_key(field_list, varchar_length=120) -%}
+{%- macro natural_key(field_list, varchar_length=255) -%}
 
     {{- adapter.dispatch('natural_key', 'sdcvault')(field_list=field_list, varchar_length=varchar_length) }}
 
