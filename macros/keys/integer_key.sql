@@ -30,7 +30,7 @@
                     '{{ all_null | join("") }}'
                 )
             ),
-            {{ var('sdcvault.ghost_hk') }}::binary(16)
+            {{ var('sdcvault.ghost_hk') }}::number
         )
 
 {%- endmacro %}
