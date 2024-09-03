@@ -1,5 +1,5 @@
 name: sdcvault
-version: 0.0.1
+version: 0.1.0
 require-dbt-version: [">=1.0.0", "<2.0.0"]
 config-version: 2
 
@@ -16,9 +16,23 @@ clean-targets:
   - "dbt_packages"
 
 vars:
+  # High-water mark on Hub, Link and Satellite macro. 
+  # Run --vars 'sdcvault.high_water_mark: false' to load late arriving records like new systems in erpall.
   sdcvault.high_water_mark: true
-  sdvault.natural_key: false
-  sdvault.integer_key: false
+
+  # Optional data limitations, recommended for development or CI purposes
+  sdcvault.limit_sources: "{{ -1 if target.name in ['default','CI'] else -1 }}" # Limits the sources in multi-source objects
+  sdcvault.table_sample: "{{ -1 if target.name in ['default','CI'] else -1 }}" # Adds a tablesample() to the source tables
+
+  # Optional key creation for Business Vault macros
+  sdcvault.natural_key: false # Provides a non-hashed version of the hash key
+  sdcvault.integer_key: false # Creates a md5_number_lower64() version to be used in BI tools
+
+  sdcvault.ldts_alias: last_updated
+  sdcvault.rsrc_alias: dv_source
+  sdcvault.dv_inserted_bool: false # Adds a dv_inserted_at timestamp in all Raw Vault models, a current_timesamp() on the ingestion
+
   sdcvault.ghost_hk: "'00000000000000000000000000000000'"
   sdcvault.ghost_ts: "'1900-01-01'"
   sdcvault.ghost_source: "'System'"
+  sdcvault.end_of_time: "'9999-12-31'" # Used in the Effectivtiy Satellite
